@@ -89,7 +89,7 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
                 }
             }
 
-            ResourceLocation texture = getOrUploadTexture(id, model);
+            ResourceLocation texture = getTexture(id, model);
 
             poseStack.pushPose();
             applySlotTransform(poseStack, slot, player, partialTick);
@@ -140,7 +140,8 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
     // ── Texture management ─────────────────────────────────────────────────────
 
-    private static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
+    /** Package-visible so {@link PetCosmeticRenderer} can reuse the same texture cache. */
+    static ResourceLocation getTexture(String id, BBModelData model) {
         return TEXTURE_CACHE.computeIfAbsent(id, k -> {
             ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(
                 "manas_cosmetics", "dynamic/" + k.replace(':', '/'));

@@ -4,9 +4,12 @@ import dev.architectury.event.events.client.ClientPlayerEvent;
 import dev.architectury.event.events.client.ClientTickEvent;
 import dev.architectury.networking.NetworkManager;
 import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
+import dev.architectury.registry.client.rendering.EntityRendererRegistry;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.client.gui.WardrobeScreen;
 import io.github.manasmods.manas_cosmetics.client.renderer.ClientCosmeticModelCache;
+import io.github.manasmods.manas_cosmetics.client.renderer.PetCosmeticRenderer;
+import io.github.manasmods.manas_cosmetics.entity.EntityRegistry;
 import io.github.manasmods.manas_cosmetics.network.SyncCosmeticRegistryPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
 import net.minecraft.client.KeyMapping;
@@ -35,6 +38,9 @@ public final class ManasCosmticsClient {
     private ManasCosmticsClient() {}
 
     public static void init() {
+        // Register pet entity renderer
+        EntityRendererRegistry.register(EntityRegistry.PET_COSMETIC, PetCosmeticRenderer::new);
+
         // Register keybinding
         KeyMappingRegistry.register(WARDROBE_KEY);
 
