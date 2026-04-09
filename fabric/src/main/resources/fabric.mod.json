@@ -1,29 +1,29 @@
 {
   "schemaVersion": 1,
-  "id": "manas_template",
+  "id": "manas_cosmetics",
   "version": "${version}",
-  "name": "ManasMods 1.21 Template",
-  "description": "This is an example description! Tell everyone what your mod is about!",
+  "name": "Manas Cosmetics",
+  "description": "A full server cosmetics mod for ManasMods' Minecraft 1.21.1 server.",
   "authors": [
-    "Me!"
+    "ManasMods"
   ],
   "contact": {
     "homepage": "https://fabricmc.net/",
     "sources": "https://github.com/FabricMC/fabric-example-mod"
   },
-  "license": "CC0-1.0",
-  "icon": "assets/manas_template/icon.png",
+  "license": "All Rights Reserved",
+  "icon": "assets/manas_cosmetics/icon.png",
   "environment": "*",
   "entrypoints": {
     "main": [
-      "io.github.manasmods.template.fabric.TemplateFabric"
+      "io.github.manasmods.manas_cosmetics.fabric.ManasCosmeticsFabric"
     ],
     "client": [
-      "io.github.manasmods.template.fabric.client.TemplateFabricClient"
+      "io.github.manasmods.manas_cosmetics.fabric.client.ManasCosmeticsFabricClient"
     ]
   },
   "mixins": [
-    "manas_template.mixins.json"
+    "manas_cosmetics.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=0.16.10",

@@ -1,6 +1,7 @@
 {
   "required": true,
-  "package": "io.github.manasmods.template.mixin",
+  "package": "io.github.manasmods.manas_cosmetics.mixin",
+  "refmap": "manas_cosmetics.refmap.json",
   "compatibilityLevel": "JAVA_21",
   "minVersion": "0.8",
   "client": [
