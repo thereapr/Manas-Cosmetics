@@ -3,6 +3,8 @@ package io.github.manasmods.manas_cosmetics.client.renderer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
+import io.github.manasmods.manas_cosmetics.api.WeaponType;
+import io.github.manasmods.manas_cosmetics.api.WeaponTypeChecker;
 import io.github.manasmods.manas_cosmetics.client.ClientCosmeticState;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
 import net.minecraft.client.model.EntityModel;
@@ -13,7 +15,7 @@ import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
-import org.joml.Matrix4f;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -73,6 +75,19 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
             CosmeticDefinition def = defOpt.get();
             BBModelData model = modelOpt.get();
+
+            // Weapon-slot visibility: hide unless holding the correct weapon type (or force-equip)
+            if (slot.isWeaponSlot() && def.weaponType() != WeaponType.ANY) {
+                boolean force = player.isLocalPlayer()
+                    ? state.isForceEquip(slot)
+                    : state.isForceEquipForPlayer(uuid, slot);
+                if (!force) {
+                    ItemStack heldItem = player.getMainHandItem();
+                    if (!WeaponTypeChecker.matches(heldItem, def.weaponType())) {
+                        continue;
+                    }
+                }
+            }
 
             ResourceLocation texture = getOrUploadTexture(id, model);
 
@@ -162,6 +177,10 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     }
 
     public static void evictTexture(String cosmeticId) {
-        TEXTURE_CACHE.remove(cosmeticId);
+        if ("*".equals(cosmeticId)) {
+            TEXTURE_CACHE.clear();
+        } else {
+            TEXTURE_CACHE.remove(cosmeticId);
+        }
     }
 }
