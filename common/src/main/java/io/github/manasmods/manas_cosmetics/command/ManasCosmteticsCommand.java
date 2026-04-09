@@ -120,6 +120,12 @@ public final class ManasCosmteticsCommand {
     private static int executeReload(CommandContext<CommandSourceStack> ctx) {
         CosmeticManager.get().reload();
         int count = CosmeticManager.get().getAllDefinitions().size();
+
+        // Push updated registry to all connected clients
+        if (ctx.getSource().getServer() != null) {
+            io.github.manasmods.manas_cosmetics.ManasCosmetics.broadcastRegistryToAll(ctx.getSource().getServer());
+        }
+
         ctx.getSource().sendSuccess(
             () -> Component.literal("[manas_cosmetics] Reloaded. " + count + " cosmetic(s) loaded."),
             true
