@@ -1,33 +1,33 @@
 modLoader = "javafml"
 loaderVersion = "[4,)"
 #issueTrackerURL = ""
-license = "Insert License Here"
+license = "All Rights Reserved"
 
 [[mods]]
-modId = "manas_template"
+modId = "manas_cosmetics"
 version = "${version}"
-displayName = "ManasMods 1.21 Template"
-authors = "Me!"
+displayName = "Manas Cosmetics"
+authors = "ManasMods"
 description = '''
-This is an example description! Tell everyone what your mod is about!
+A full server cosmetics mod for ManasMods' Minecraft 1.21.1 server.
 '''
 #logoFile = ""
 
-[[dependencies.manas_template]]
+[[dependencies.manas_cosmetics]]
 modId = "neoforge"
 type = "required"
 versionRange = "[21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.manas_template]]
+[[dependencies.manas_cosmetics]]
 modId = "minecraft"
 type = "required"
 versionRange = "[1.21.1,)"
 ordering = "NONE"
 side = "BOTH"
 
-[[dependencies.manas_template]]
+[[dependencies.manas_cosmetics]]
 modId = "architectury"
 type = "required"
 versionRange = "[13.0.8,)"
@@ -35,4 +35,4 @@ ordering = "AFTER"
 side = "BOTH"
 
 [[mixins]]
-config = "manas_template.mixins.json"
+config = "manas_cosmetics.mixins.json"
