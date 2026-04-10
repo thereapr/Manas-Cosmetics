@@ -1,5 +1,5 @@
 loom {
-    accessWidenerPath = file('src/main/resources/manas_template.accesswidener')
+    accessWidenerPath = file('src/main/resources/manas_cosmetics.accesswidener')
 }
 
 dependencies {

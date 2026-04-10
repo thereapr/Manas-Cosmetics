@@ -144,11 +144,11 @@ public final class ManasCosmteticsCommand {
             player
         );
 
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        var buf = new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
         buf.writeBoolean(true); // open flag
         dev.architectury.networking.NetworkManager.sendToPlayer(
             player,
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "open_wardrobe_s2c"),
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "open_wardrobe_s2c"),
             buf
         );
 

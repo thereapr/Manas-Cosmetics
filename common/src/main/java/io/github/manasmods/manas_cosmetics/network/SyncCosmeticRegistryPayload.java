@@ -8,7 +8,7 @@ import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.core.CosmeticManager;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -43,7 +43,7 @@ public final class SyncCosmeticRegistryPayload {
 
     // ── Encode / Decode ────────────────────────────────────────────────────────
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RegistryFriendlyByteBuf buf) {
         buf.writeVarInt(entries.size());
         for (Entry e : entries) {
             CosmeticDefinition d = e.definition();
@@ -59,7 +59,7 @@ public final class SyncCosmeticRegistryPayload {
         }
     }
 
-    public static SyncCosmeticRegistryPayload decode(FriendlyByteBuf buf) {
+    public static SyncCosmeticRegistryPayload decode(RegistryFriendlyByteBuf buf) {
         int count = buf.readVarInt();
         List<Entry> entries = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {

@@ -152,28 +152,17 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     }
 
     private static void uploadTexture(ResourceLocation loc, byte[] pngBytes) {
-        try {
-            net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
-            java.io.InputStream stream = new java.io.ByteArrayInputStream(pngBytes);
-            net.minecraft.client.renderer.texture.SimpleTexture simple =
-                new net.minecraft.client.renderer.texture.SimpleTexture(loc) {
-                    @Override
-                    public net.minecraft.server.packs.resources.ResourceManager.Empty prepare(
-                            net.minecraft.server.packs.resources.ResourceManager rm,
-                            java.util.concurrent.Executor exec) {
-                        return null;
-                    }
-                };
-            mc.execute(() -> {
-                try {
-                    com.mojang.blaze3d.platform.NativeImage image = com.mojang.blaze3d.platform.NativeImage.read(stream);
-                    DynamicTexture tex = new DynamicTexture(image);
-                    mc.getTextureManager().register(loc, tex);
-                } catch (Exception e) {
-                    // Log and continue — cosmetic will render without texture
-                }
-            });
-        } catch (Exception ignored) {}
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.execute(() -> {
+            try {
+                java.io.InputStream stream = new java.io.ByteArrayInputStream(pngBytes);
+                com.mojang.blaze3d.platform.NativeImage image = com.mojang.blaze3d.platform.NativeImage.read(stream);
+                DynamicTexture tex = new DynamicTexture(image);
+                mc.getTextureManager().register(loc, tex);
+            } catch (Exception e) {
+                // Log and continue — cosmetic will render without texture
+            }
+        });
     }
 
     public static void evictTexture(String cosmeticId) {
