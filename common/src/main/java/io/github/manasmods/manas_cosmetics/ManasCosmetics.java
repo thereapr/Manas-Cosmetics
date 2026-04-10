@@ -14,7 +14,7 @@ import io.github.manasmods.manas_cosmetics.entity.EntityRegistry;
 import io.github.manasmods.manas_cosmetics.network.CosmeticsNetworking;
 import io.github.manasmods.manas_cosmetics.network.SyncCosmeticRegistryPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
@@ -92,7 +92,7 @@ public final class ManasCosmetics {
 
     public static void sendRegistryToPlayer(ServerPlayer player) {
         SyncCosmeticRegistryPayload payload = SyncCosmeticRegistryPayload.fromManager();
-        FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
         payload.encode(buf);
         NetworkManager.sendToPlayer(player, SyncCosmeticRegistryPayload.ID, buf);
     }
@@ -101,7 +101,7 @@ public final class ManasCosmetics {
     public static void broadcastRegistryToAll(net.minecraft.server.MinecraftServer server) {
         SyncCosmeticRegistryPayload payload = SyncCosmeticRegistryPayload.fromManager();
         server.getPlayerList().getPlayers().forEach(sp -> {
-            FriendlyByteBuf buf = new FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+            RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), sp.registryAccess());
             payload.encode(buf);
             NetworkManager.sendToPlayer(sp, SyncCosmeticRegistryPayload.ID, buf);
         });

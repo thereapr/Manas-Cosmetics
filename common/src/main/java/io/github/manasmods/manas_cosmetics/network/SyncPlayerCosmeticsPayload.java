@@ -4,7 +4,7 @@ import dev.architectury.networking.NetworkManager;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import io.github.manasmods.manas_cosmetics.data.PlayerCosmeticData;
-import net.minecraft.network.FriendlyByteBuf;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -39,7 +39,7 @@ public final class SyncPlayerCosmeticsPayload {
 
     // ── Encode / Decode ────────────────────────────────────────────────────────
 
-    public void encode(FriendlyByteBuf buf) {
+    public void encode(RegistryFriendlyByteBuf buf) {
         buf.writeUUID(targetPlayer);
 
         buf.writeVarInt(equipped.size());
@@ -55,7 +55,7 @@ public final class SyncPlayerCosmeticsPayload {
         });
     }
 
-    public static SyncPlayerCosmeticsPayload decode(FriendlyByteBuf buf) {
+    public static SyncPlayerCosmeticsPayload decode(RegistryFriendlyByteBuf buf) {
         UUID uuid = buf.readUUID();
 
         int equippedSize = buf.readVarInt();

@@ -9,6 +9,10 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
+import net.minecraft.client.Minecraft;
+import net.minecraft.core.RegistryAccess;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -254,49 +258,58 @@ public class WardrobeScreen extends Screen {
 
     // ── Network helpers ────────────────────────────────────────────────────────
 
+    /** Creates a {@link RegistryFriendlyByteBuf} backed by the current connection's registry access. */
+    private static RegistryFriendlyByteBuf createBuf() {
+        Minecraft mc = Minecraft.getInstance();
+        RegistryAccess access = mc.getConnection() != null
+            ? mc.getConnection().registryAccess()
+            : RegistryAccess.EMPTY;
+        return new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), access);
+    }
+
     private void sendEquipPacket(CosmeticSlot slot, String id, boolean forceEquip) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = createBuf();
         buf.writeUtf(slot.getId());
         buf.writeUtf(id);
         buf.writeBoolean(forceEquip);
         dev.architectury.networking.NetworkManager.sendToServer(
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "equip_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "equip_c2s"), buf);
     }
 
     private void sendUnequipPacket(CosmeticSlot slot) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = createBuf();
         buf.writeUtf(slot.getId());
         dev.architectury.networking.NetworkManager.sendToServer(
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "unequip_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "unequip_c2s"), buf);
     }
 
     private void sendForceEquipPacket(CosmeticSlot slot, boolean value) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = createBuf();
         buf.writeUtf(slot.getId());
         buf.writeBoolean(value);
         dev.architectury.networking.NetworkManager.sendToServer(
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "force_equip_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "force_equip_c2s"), buf);
     }
 
     private void sendPresetSavePacket(String name) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = createBuf();
         buf.writeUtf(name);
         dev.architectury.networking.NetworkManager.sendToServer(
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "preset_save_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "preset_save_c2s"), buf);
     }
 
     private void sendPresetLoadPacket(int index) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = createBuf();
         buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "preset_load_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "preset_load_c2s"), buf);
     }
 
     private void sendPresetDeletePacket(int index) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = createBuf();
         buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            new net.minecraft.resources.ResourceLocation("manas_cosmetics", "preset_delete_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "preset_delete_c2s"), buf);
     }
 
     // ── Utilities ──────────────────────────────────────────────────────────────

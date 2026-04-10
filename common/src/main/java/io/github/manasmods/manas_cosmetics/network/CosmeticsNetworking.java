@@ -2,6 +2,7 @@ package io.github.manasmods.manas_cosmetics.network;
 
 import dev.architectury.networking.NetworkManager;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
+import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -41,19 +42,19 @@ public final class CosmeticsNetworking {
         // Send to all other players who can see this player
         player.serverLevel().getChunkSource().broadcastAndSend(
             player,
-            buildSyncPacket(payload)
+            buildSyncPacket(payload, player.registryAccess())
         );
     }
 
     /** Sends cosmetic sync only to the given player (e.g. on login). */
     public static void sendSyncToPlayer(SyncPlayerCosmeticsPayload payload, ServerPlayer recipient) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), recipient.registryAccess());
         payload.encode(buf);
         NetworkManager.sendToPlayer(recipient, SyncPlayerCosmeticsPayload.ID, buf);
     }
 
-    private static net.minecraft.network.protocol.Packet<?> buildSyncPacket(SyncPlayerCosmeticsPayload payload) {
-        var buf = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.buffer());
+    private static net.minecraft.network.protocol.Packet<?> buildSyncPacket(SyncPlayerCosmeticsPayload payload, net.minecraft.core.RegistryAccess registryAccess) {
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), registryAccess);
         payload.encode(buf);
         return NetworkManager.toPacket(NetworkManager.Side.S2C, SyncPlayerCosmeticsPayload.ID, buf);
     }
