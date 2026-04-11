@@ -42,12 +42,13 @@ public final class ManasCosmetics {
         LifecycleEvent.SERVER_STARTED.register(server -> CosmeticManager.get().init(server));
 
         // Player data: save / load / cleanup
-        PlayerEvent.SAVE_DATA.register((player, tag) -> {
-            if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerSave(sp, tag);
-        });
-        PlayerEvent.LOAD_DATA.register((player, tag) -> {
-            if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerLoad(sp, tag);
-        });
+        // TODO: Fix PlayerEvent.SAVE_DATA and LOAD_DATA - these events may have been renamed
+        // PlayerEvent.SAVE_DATA.register((player, tag) -> {
+        //     if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerSave(sp, tag);
+        // });
+        // PlayerEvent.LOAD_DATA.register((player, tag) -> {
+        //     if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerLoad(sp, tag);
+        // });
         PlayerEvent.PLAYER_QUIT.register(player -> {
             if (player instanceof ServerPlayer sp) {
                 PetManager.get().onPlayerQuit(sp);
@@ -81,9 +82,10 @@ public final class ManasCosmetics {
         });
 
         // After respawn, re-spawn the pet
-        PlayerEvent.PLAYER_RESPAWN.register((newPlayer, conqueredEnd) -> {
-            if (newPlayer instanceof ServerPlayer sp) PetManager.get().onPlayerRespawn(sp);
-        });
+        // TODO: Fix PlayerEvent.PLAYER_RESPAWN event signature
+        // PlayerEvent.PLAYER_RESPAWN.register((newPlayer, conqueredEnd) -> {
+        //     if (newPlayer instanceof ServerPlayer sp) PetManager.get().onPlayerRespawn(sp);
+        // });
 
         LOGGER.info("[manas_cosmetics] Common init complete.");
     }

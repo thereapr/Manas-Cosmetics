@@ -45,7 +45,7 @@ public final class CosmeticManager {
     // ── Initialisation ─────────────────────────────────────────────────────────
 
     public void init(MinecraftServer server) {
-        configRoot = server.getServerDirectory().toPath()
+        configRoot = server.getServerDirectory()
             .resolve("config")
             .resolve("manas_cosmetics");
         ensureDirectories();
