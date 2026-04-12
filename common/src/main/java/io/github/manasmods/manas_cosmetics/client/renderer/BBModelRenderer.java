@@ -147,6 +147,8 @@ public final class BBModelRenderer {
         // Vertex order: position → color → uv0 (texture) → uv1 (overlay) → uv2 (light) → normal
         // setOverlay(NO_OVERLAY) is required; without it the overlay defaults to 0 (the hurt/red
         // position in the overlay texture), producing a red tint over the whole cosmetic.
+        final Matrix4f pose = poseStack.last().pose();
+        final Matrix3f normal = poseStack.last().normal();
         buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
         buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
         buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
