@@ -14,7 +14,8 @@ public record CosmeticDefinition(
     boolean forceEquipAllowed,
     String modelPath,
     float[] scale,
-    float[] offset
+    float[] offset,
+    float[] rotation
 ) {
     public static CosmeticDefinition fromJson(JsonObject json) {
         String id = json.get("id").getAsString();
@@ -39,7 +40,14 @@ public record CosmeticDefinition(
             offset = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
         }
 
-        return new CosmeticDefinition(id, displayName, slot, weaponType, forceEquipAllowed, modelPath, scale, offset);
+        // Default X=180 so models face the correct direction out-of-the-box
+        float[] rotation = {180f, 0f, 0f};
+        if (json.has("rotation")) {
+            var arr = json.getAsJsonArray("rotation");
+            rotation = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
+        }
+
+        return new CosmeticDefinition(id, displayName, slot, weaponType, forceEquipAllowed, modelPath, scale, offset, rotation);
     }
 
     /** Namespace portion of the id, e.g. "manas_cosmetics" from "manas_cosmetics:icicle_wings". */
