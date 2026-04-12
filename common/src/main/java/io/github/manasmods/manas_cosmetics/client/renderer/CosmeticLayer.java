@@ -135,8 +135,12 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     private static void applyDefTransform(PoseStack ps, CosmeticDefinition def) {
         float[] s = def.scale();
         float[] o = def.offset();
+        float[] r = def.rotation();
         ps.translate(o[0] / 16.0, o[1] / 16.0, o[2] / 16.0);
         ps.scale(s[0], s[1], s[2]);
+        if (r[0] != 0) ps.mulPose(new org.joml.Quaternionf().rotateX((float) Math.toRadians(r[0])));
+        if (r[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(r[1])));
+        if (r[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(r[2])));
     }
 
     // ── Texture management ─────────────────────────────────────────────────────

@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -145,10 +146,13 @@ public final class BBModelRenderer {
                               float x3, float y3, float z3,
                               float u0, float v0, float u1, float v1,
                               float nx, float ny, float nz) {
-        buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setNormal(normal,nx,ny,nz).setLight(light);
-        buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setNormal(normal,nx,ny,nz).setLight(light);
-        buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setNormal(normal,nx,ny,nz).setLight(light);
-        buf.addVertex(pose, x3, y3, z3).setColor(255,255,255,255).setUv(u0,v1).setNormal(normal,nx,ny,nz).setLight(light);
+        // Vertex order: position → color → uv0 (texture) → uv1 (overlay) → uv2 (light) → normal
+        // setOverlay(NO_OVERLAY) is required; without it the overlay defaults to 0 (the hurt/red
+        // position in the overlay texture), producing a red tint over the whole cosmetic.
+        buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
+        buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
+        buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
+        buf.addVertex(pose, x3, y3, z3).setColor(255,255,255,255).setUv(u0,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
     }
 
     // ── Animation interpolation ────────────────────────────────────────────────

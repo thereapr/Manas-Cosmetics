@@ -53,8 +53,9 @@ public final class SyncCosmeticRegistryPayload {
             buf.writeUtf(d.weaponType().getId());
             buf.writeBoolean(d.forceEquipAllowed());
             buf.writeUtf(d.modelPath());
-            for (float v : d.scale())  buf.writeFloat(v);
-            for (float v : d.offset()) buf.writeFloat(v);
+            for (float v : d.scale())    buf.writeFloat(v);
+            for (float v : d.offset())   buf.writeFloat(v);
+            for (float v : d.rotation()) buf.writeFloat(v);
             buf.writeUtf(e.bbModelJson());
         }
     }
@@ -69,8 +70,9 @@ public final class SyncCosmeticRegistryPayload {
             String weaponTypeId    = buf.readUtf();
             boolean forceEquip     = buf.readBoolean();
             String modelPath       = buf.readUtf();
-            float[] scale  = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
-            float[] offset = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
+            float[] scale    = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
+            float[] offset   = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
+            float[] rotation = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
             String bbModelJson     = buf.readUtf();
 
             var slot = io.github.manasmods.manas_cosmetics.api.CosmeticSlot.fromId(slotId)
@@ -78,7 +80,7 @@ public final class SyncCosmeticRegistryPayload {
             var weaponType = io.github.manasmods.manas_cosmetics.api.WeaponType.fromId(weaponTypeId);
 
             CosmeticDefinition def = new CosmeticDefinition(
-                id, displayName, slot, weaponType, forceEquip, modelPath, scale, offset);
+                id, displayName, slot, weaponType, forceEquip, modelPath, scale, offset, rotation);
             entries.add(new Entry(def, bbModelJson));
         }
         return new SyncCosmeticRegistryPayload(entries);
