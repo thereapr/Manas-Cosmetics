@@ -3,70 +3,77 @@ package io.github.manasmods.manas_cosmetics.client.gui;
 import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import io.github.manasmods.manas_cosmetics.client.ClientCosmeticState;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.network.chat.Component;
-
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
 /**
- * The wardrobe GUI — opened with Left-Alt or /manas_cosmetics wardrobe.
+ * Wardrobe GUI — Left-Alt or /manas_cosmetics wardrobe.
  *
- * Bluish pixel-art Minecraft style. Slot tabs are drawn as custom boxes
- * (not Button widgets) so they can be coloured/highlighted properly.
+ * Layout:
+ *  ┌─[Title bar]────────────────────────────────────────────────┐
+ *  │ Slot     │  Cosmetic list              │ [Player preview]  │
+ *  │ sidebar  │                             │                   │
+ *  │ (scroll) │                             ├───────────────────┤
+ *  │          │                             │ Preset list       │
+ *  ├──────────┼─────────────────────────────┼───────────────────┤
+ *  │ [Equip]  [Unequip]                     │ [Name] [Sv][Ld]   │
+ *  │ [Force Equip]                          │ [Delete]          │
+ *  └────────────────────────────────────────────────────────────┘
  */
 public class WardrobeScreen extends Screen {
 
     // ── Layout ─────────────────────────────────────────────────────────────────
 
-    private static final int WIDTH  = 340;
-    private static final int HEIGHT = 230;
+    private static final int WIDTH        = 400;
+    private static final int HEIGHT       = 270;
+    private static final int HEADER_H     = 14;   // title bar height
+    private static final int BOTTOM_H     = 64;   // action buttons height
+    private static final int CONTENT_H    = HEIGHT - HEADER_H - BOTTOM_H; // 192
+    private static final int SIDEBAR_W    = 72;   // slot sidebar width
+    private static final int RIGHT_W      = 130;  // right panel width
+    // cosmetic list fills the middle
+    private static final int LIST_W       = WIDTH - SIDEBAR_W - RIGHT_W - 4; // ~194
+    // right panel split: preview top half, presets bottom half
+    private static final int PREVIEW_H    = CONTENT_H / 2;   // 96
+    private static final int PRESET_LIST_H = CONTENT_H - PREVIEW_H; // 96
 
-    /** Width of each slot-tab cell. 13 slots × 24 px = 312 px — fits in 340. */
-    private static final int TAB_W = 24;
-    private static final int TAB_H = 13;
+    private static final int ROW_H = 13;
 
-    // ── Bluish pixel-art palette ───────────────────────────────────────────────
+    // ── Palette (brighter / higher contrast) ──────────────────────────────────
 
-    /** World overlay — replaces MC's blur shader with a plain dark wash. */
-    private static final int COL_OVERLAY   = 0x88000000;
-    /** Main panel background. */
-    private static final int COL_PANEL     = 0xF0101828;
-    /** List / inner-panel background. */
-    private static final int COL_INNER     = 0xF0070D18;
-    /** Dark border (outer / shadow edge). */
-    private static final int COL_BORDER_DK = 0xFF04080F;
-    /** Light border (inner / highlight edge). */
-    private static final int COL_BORDER_LT = 0xFF2A5898;
-    /** Bright accent used for the active-tab top strip. */
-    private static final int COL_ACCENT    = 0xFF3A78CC;
-    /** Selected-row / active-tab fill. */
-    private static final int COL_SEL       = 0xFF1A4A88;
-    /** Hovered-row fill. */
-    private static final int COL_HOV       = 0xFF0E1E30;
-    /** Primary text — light blue-white. */
-    private static final int COL_TEXT      = 0xFFCCE4FF;
-    /** Dimmed text — slate blue. */
-    private static final int COL_TEXT_DIM  = 0xFF5577AA;
-    /** Title text — brighter blue. */
-    private static final int COL_TITLE     = 0xFF88CCFF;
-    /** Equipped-item indicator. */
-    private static final int COL_EQUIPPED  = 0xFF55FF88;
+    private static final int COL_OVERLAY   = 0xA0000000;  // world overlay
+    private static final int COL_PANEL     = 0xFF1E2E40;  // main panel bg
+    private static final int COL_INNER     = 0xFF111E2C;  // inner areas
+    private static final int COL_HEADER    = 0xFF182437;  // title bar
+    private static final int COL_BORDER_DK = 0xFF080F18;  // shadow border
+    private static final int COL_BORDER_LT = 0xFF4D9FE0;  // highlight border (bright)
+    private static final int COL_DIVIDER   = 0xFF2A4A6A;  // inner dividers
+    private static final int COL_ACCENT    = 0xFF55AAFF;  // active-tab top strip
+    private static final int COL_SEL       = 0xFF2255AA;  // selected row/tab
+    private static final int COL_HOV       = 0xFF1A3A55;  // hovered row
+    private static final int COL_TEXT      = 0xFFFFFFFF;  // primary text
+    private static final int COL_TEXT_DIM  = 0xFF8BBEDD;  // secondary text
+    private static final int COL_TITLE     = 0xFF77CCFF;  // title
+    private static final int COL_EQUIPPED  = 0xFF44FF88;  // equipped tick
 
     // ── State ──────────────────────────────────────────────────────────────────
 
     private final List<CosmeticSlot> SLOT_TABS = Arrays.asList(CosmeticSlot.values());
 
     private int selectedTabIndex      = 0;
-    private int scrollOffset          = 0;
+    private int slotScrollOffset      = 0;   // sidebar scroll
+    private int listScrollOffset      = 0;   // cosmetic list scroll
     private int selectedCosmeticIndex = -1;
     private int selectedPresetIndex   = -1;
 
@@ -86,59 +93,56 @@ public class WardrobeScreen extends Screen {
         guiLeft = (width  - WIDTH)  / 2;
         guiTop  = (height - HEIGHT) / 2;
 
-        // NOTE: slot tabs are drawn + clicked manually — no Button widgets for them.
+        int bY1 = guiTop + HEADER_H + CONTENT_H + 4;   // button row 1
+        int bY2 = bY1 + 24;                             // button row 2
 
-        // Equip / Unequip — wide enough that the text is never clipped
+        // Left / main area buttons
         addRenderableWidget(Button.builder(
             Component.translatable("gui.manas_cosmetics.equip"),
             btn -> equipSelected()
-        ).bounds(guiLeft + 4, guiTop + HEIGHT - 44, 56, 20).build());
+        ).bounds(guiLeft + SIDEBAR_W + 4, bY1, 56, 20).build());
 
         addRenderableWidget(Button.builder(
             Component.translatable("gui.manas_cosmetics.unequip"),
             btn -> unequipCurrent()
-        ).bounds(guiLeft + 64, guiTop + HEIGHT - 44, 66, 20).build());
+        ).bounds(guiLeft + SIDEBAR_W + 64, bY1, 66, 20).build());
 
-        // Force-equip toggle (weapon slots only — greyed out otherwise)
         addRenderableWidget(Button.builder(
             Component.translatable("gui.manas_cosmetics.force_equip"),
             btn -> toggleForceEquip()
-        ).bounds(guiLeft + 4, guiTop + HEIGHT - 20, 90, 20).build());
+        ).bounds(guiLeft + SIDEBAR_W + 4, bY2, 90, 20).build());
 
-        // Preset name input box
+        // Right panel buttons
+        int rx = guiLeft + WIDTH - RIGHT_W + 2;
+        int rbW = RIGHT_W - 6;
+
         presetNameBox = new EditBox(
-            font,
-            guiLeft + WIDTH - 92, guiTop + HEIGHT - 70,
-            86, 16,
+            font, rx, bY1, rbW, 16,
             Component.translatable("gui.manas_cosmetics.preset_name")
         );
         presetNameBox.setMaxLength(24);
         presetNameBox.setValue("Preset " + (ClientCosmeticState.get().getPresets().size() + 1));
         addRenderableWidget(presetNameBox);
 
-        // Save / Load / Delete
+        int halfW = (rbW - 2) / 2;
         addRenderableWidget(Button.builder(
             Component.translatable("gui.manas_cosmetics.save_preset"),
             btn -> savePreset()
-        ).bounds(guiLeft + WIDTH - 92, guiTop + HEIGHT - 50, 40, 20).build());
+        ).bounds(rx, bY2, halfW, 20).build());
 
         addRenderableWidget(Button.builder(
             Component.translatable("gui.manas_cosmetics.load_preset"),
             btn -> loadPreset()
-        ).bounds(guiLeft + WIDTH - 48, guiTop + HEIGHT - 50, 40, 20).build());
+        ).bounds(rx + halfW + 2, bY2, halfW, 20).build());
 
         addRenderableWidget(Button.builder(
             Component.translatable("gui.manas_cosmetics.delete_preset"),
             btn -> deletePreset()
-        ).bounds(guiLeft + WIDTH - 92, guiTop + HEIGHT - 26, 84, 20).build());
+        ).bounds(rx, bY2 + 24, rbW, 20).build());
     }
 
     // ── Background ─────────────────────────────────────────────────────────────
 
-    /**
-     * Replace MC's default blur pass with a plain semi-transparent overlay so
-     * the GUI text and panels stay crisp.
-     */
     @Override
     public void renderBackground(GuiGraphics g, int mouseX, int mouseY, float delta) {
         g.fill(0, 0, width, height, COL_OVERLAY);
@@ -150,94 +154,136 @@ public class WardrobeScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float delta) {
         renderBackground(g, mouseX, mouseY, delta);
 
-        // Main panel
-        drawPanel(g, guiLeft, guiTop, WIDTH, HEIGHT);
+        final int cx = guiLeft;
+        final int cy = guiTop;
+        final int contentY = cy + HEADER_H;
 
-        // Title (inside panel, top-left)
-        g.drawString(font, title, guiLeft + 6, guiTop + 4, COL_TITLE, false);
+        // ── Outer panel ─────────────────────────────────────────────────────
+        drawPanel(g, cx, cy, WIDTH, HEIGHT);
 
-        // ── Slot tabs ───────────────────────────────────────────────────────
-        int tabY      = guiTop + 18;
-        int tabStartX = guiLeft + 2;
-        for (int i = 0; i < SLOT_TABS.size(); i++) {
-            int tx     = tabStartX + i * TAB_W;
-            boolean active = (i == selectedTabIndex);
+        // Title bar
+        g.fill(cx + 1, cy + 1, cx + WIDTH - 1, cy + HEADER_H, COL_HEADER);
+        g.drawString(font, title, cx + 5, cy + 3, COL_TITLE, false);
+
+        // ── Slot sidebar ─────────────────────────────────────────────────────
+        int sideX  = cx + 1;
+        int sideY  = contentY;
+        int sideH  = CONTENT_H;
+        g.fill(sideX, sideY, sideX + SIDEBAR_W, sideY + sideH, COL_INNER);
+
+        int visibleSlots = sideH / ROW_H;
+        g.enableScissor(sideX, sideY, sideX + SIDEBAR_W, sideY + sideH);
+        for (int i = slotScrollOffset; i < SLOT_TABS.size() && (i - slotScrollOffset) < visibleSlots; i++) {
+            CosmeticSlot slot = SLOT_TABS.get(i);
+            int rowY  = sideY + (i - slotScrollOffset) * ROW_H;
+            boolean active   = (i == selectedTabIndex);
+            boolean anyEquip = ClientCosmeticState.get().getEquipped(slot).isPresent();
 
             if (active) {
-                g.fill(tx,     tabY,     tx + TAB_W, tabY + 2,     COL_ACCENT); // top-accent strip
-                g.fill(tx,     tabY + 2, tx + TAB_W, tabY + TAB_H, COL_SEL);
-            } else {
-                g.fill(tx,     tabY,     tx + TAB_W, tabY + TAB_H, COL_HOV);
+                g.fill(sideX, rowY, sideX + SIDEBAR_W, rowY + ROW_H, COL_SEL);
+                g.fill(sideX, rowY, sideX + 2, rowY + ROW_H, COL_ACCENT); // left accent bar
+            } else if (mouseX >= sideX && mouseX < sideX + SIDEBAR_W
+                    && mouseY >= rowY && mouseY < rowY + ROW_H) {
+                g.fill(sideX, rowY, sideX + SIDEBAR_W, rowY + ROW_H, COL_HOV);
             }
-            // Thin side borders for each cell
-            g.fill(tx,             tabY, tx + 1,         tabY + TAB_H, COL_BORDER_DK);
-            g.fill(tx + TAB_W - 1, tabY, tx + TAB_W,     tabY + TAB_H, COL_BORDER_DK);
 
-            g.drawCenteredString(font, slotLabel(SLOT_TABS.get(i)),
-                tx + TAB_W / 2, tabY + 3,
-                active ? COL_TEXT : COL_TEXT_DIM);
+            String dot  = anyEquip ? "\u25CF " : "  ";
+            int txtCol  = active ? COL_TEXT : COL_TEXT_DIM;
+            g.drawString(font, dot + slotLabel(slot), sideX + 5, rowY + 2, anyEquip ? COL_EQUIPPED : txtCol, false);
         }
+        g.disableScissor();
 
-        // Divider line below tab row
-        g.fill(guiLeft + 1, tabY + TAB_H, guiLeft + WIDTH - 1, tabY + TAB_H + 1, COL_BORDER_LT);
+        // Sidebar / list divider
+        int divX = cx + SIDEBAR_W + 1;
+        g.fill(divX, contentY, divX + 1, contentY + CONTENT_H, COL_DIVIDER);
 
-        // Active-slot name
+        // ── Cosmetic list ────────────────────────────────────────────────────
         CosmeticSlot activeSlot = SLOT_TABS.get(selectedTabIndex);
+        int listX = divX + 2;
+        int listY = contentY;
+        int listH = CONTENT_H;
+        g.fill(listX, listY, listX + LIST_W, listY + listH, COL_INNER);
+
+        // Slot header
         g.drawString(font,
-            "Slot: " + activeSlot.getId().replace('_', ' '),
-            guiLeft + 6, tabY + TAB_H + 4,
-            COL_TEXT_DIM, false);
+            activeSlot.getId().replace('_', ' ').toUpperCase(),
+            listX + 4, listY + 2, COL_TEXT_DIM, false);
 
-        // ── Cosmetic list ───────────────────────────────────────────────────
-        int listX = guiLeft + 4;
-        int listY = tabY + TAB_H + 16;
-        int listW = WIDTH - 102;
-        int listH = HEIGHT - (listY - guiTop) - 52;
-        int rowH  = 13;
-        drawPanel(g, listX, listY, listW, listH);
-
-        g.enableScissor(listX + 1, listY + 1, listX + listW - 1, listY + listH - 1);
+        int itemY0 = listY + ROW_H + 2;
+        int itemH  = listH - ROW_H - 2;
+        g.enableScissor(listX, itemY0, listX + LIST_W, itemY0 + itemH);
         List<CosmeticDefinition> cosmetics = getCosmeticsForSlot(activeSlot);
-        int visibleRows = (listH - 2) / rowH;
-        for (int i = scrollOffset; i < cosmetics.size() && (i - scrollOffset) < visibleRows; i++) {
-            CosmeticDefinition def  = cosmetics.get(i);
-            int rowY    = listY + 1 + (i - scrollOffset) * rowH;
+        int visRows = itemH / ROW_H;
+        for (int i = listScrollOffset; i < cosmetics.size() && (i - listScrollOffset) < visRows; i++) {
+            CosmeticDefinition def = cosmetics.get(i);
+            int rowY  = itemY0 + (i - listScrollOffset) * ROW_H;
             boolean eq  = ClientCosmeticState.get().isEquipped(activeSlot, def.id());
             boolean sel = (i == selectedCosmeticIndex);
 
             if (sel) {
-                g.fill(listX + 1, rowY, listX + listW - 1, rowY + rowH, COL_SEL);
-            } else if (mouseX >= listX + 1 && mouseX < listX + listW - 1
-                    && mouseY >= rowY && mouseY < rowY + rowH) {
-                g.fill(listX + 1, rowY, listX + listW - 1, rowY + rowH, COL_HOV);
+                g.fill(listX, rowY, listX + LIST_W, rowY + ROW_H, COL_SEL);
+            } else if (mouseX >= listX && mouseX < listX + LIST_W
+                    && mouseY >= rowY && mouseY < rowY + ROW_H) {
+                g.fill(listX, rowY, listX + LIST_W, rowY + ROW_H, COL_HOV);
             }
             g.drawString(font,
                 (eq ? "\u2714 " : "  ") + def.displayName(),
-                listX + 5, rowY + 2,
+                listX + 4, rowY + 2,
                 eq ? COL_EQUIPPED : COL_TEXT, false);
         }
         g.disableScissor();
 
-        // ── Preset panel ────────────────────────────────────────────────────
-        int presetX = guiLeft + WIDTH - 94;
-        int presetY = listY;
-        int presetW = 88;
-        int presetH = listH;
-        drawPanel(g, presetX, presetY, presetW, presetH);
-        g.drawString(font, "Presets", presetX + 4, presetY - 9, COL_TEXT_DIM, false);
+        // List / right-panel divider
+        int rdivX = listX + LIST_W + 1;
+        g.fill(rdivX, contentY, rdivX + 1, contentY + CONTENT_H, COL_DIVIDER);
 
-        g.enableScissor(presetX + 1, presetY + 1, presetX + presetW - 1, presetY + presetH - 1);
+        // ── Right panel ──────────────────────────────────────────────────────
+        int rpX = rdivX + 2;
+        int rpW = cx + WIDTH - 1 - rpX;
+
+        // ── Player preview (top half) ────────────────────────────────────────
+        int prevY = contentY;
+        g.fill(rpX, prevY, rpX + rpW, prevY + PREVIEW_H, COL_INNER);
+        g.drawString(font, "Preview", rpX + 3, prevY + 2, COL_TEXT_DIM, false);
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player != null) {
+            int scale = 38;
+            InventoryScreen.renderEntityInInventoryFollowsMouse(
+                g,
+                rpX + 1, prevY + ROW_H,
+                rpX + rpW - 1, prevY + PREVIEW_H - 1,
+                scale, 0f,
+                mouseX, mouseY,
+                mc.player
+            );
+        }
+
+        // Separator between preview and presets
+        int sepY = contentY + PREVIEW_H;
+        g.fill(rpX, sepY, rpX + rpW, sepY + 1, COL_DIVIDER);
+
+        // ── Preset list (bottom half) ─────────────────────────────────────────
+        int plY = sepY + 1;
+        int plH = PRESET_LIST_H - 1;
+        g.fill(rpX, plY, rpX + rpW, plY + plH, COL_INNER);
+        g.drawString(font, "Presets", rpX + 3, plY + 2, COL_TEXT_DIM, false);
+
+        int plItemY0 = plY + ROW_H + 2;
+        int plItemH  = plH - ROW_H - 2;
+        g.enableScissor(rpX, plItemY0, rpX + rpW, plItemY0 + plItemH);
         List<io.github.manasmods.manas_cosmetics.data.CosmeticPreset> presets =
             ClientCosmeticState.get().getPresets();
-        for (int i = 0; i < presets.size() && i < 8; i++) {
-            int rowY = presetY + 1 + i * rowH;
+        int plVisRows = plItemH / ROW_H;
+        for (int i = 0; i < presets.size() && i < plVisRows; i++) {
+            int rowY = plItemY0 + i * ROW_H;
             if (i == selectedPresetIndex) {
-                g.fill(presetX + 1, rowY, presetX + presetW - 1, rowY + rowH, COL_SEL);
-            } else if (mouseX >= presetX + 1 && mouseX < presetX + presetW - 1
-                    && mouseY >= rowY && mouseY < rowY + rowH) {
-                g.fill(presetX + 1, rowY, presetX + presetW - 1, rowY + rowH, COL_HOV);
+                g.fill(rpX, rowY, rpX + rpW, rowY + ROW_H, COL_SEL);
+            } else if (mouseX >= rpX && mouseX < rpX + rpW
+                    && mouseY >= rowY && mouseY < rowY + ROW_H) {
+                g.fill(rpX, rowY, rpX + rpW, rowY + ROW_H, COL_HOV);
             }
-            g.drawString(font, presets.get(i).getName(), presetX + 5, rowY + 2, COL_TEXT, false);
+            g.drawString(font, presets.get(i).getName(), rpX + 4, rowY + 2, COL_TEXT, false);
         }
         g.disableScissor();
 
@@ -248,42 +294,43 @@ public class WardrobeScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        // Slot tab clicks (custom drawn, not Button widgets)
-        int tabY      = guiTop + 18;
-        int tabStartX = guiLeft + 2;
-        if (mouseY >= tabY && mouseY < tabY + TAB_H) {
-            for (int i = 0; i < SLOT_TABS.size(); i++) {
-                int tx = tabStartX + i * TAB_W;
-                if (mouseX >= tx && mouseX < tx + TAB_W) {
-                    selectTab(i);
-                    return true;
-                }
+        final int contentY = guiTop + HEADER_H;
+
+        // Slot sidebar clicks
+        int sideX = guiLeft + 1;
+        if (mouseX >= sideX && mouseX < sideX + SIDEBAR_W
+                && mouseY >= contentY && mouseY < contentY + CONTENT_H) {
+            int row = ((int) mouseY - contentY) / ROW_H + slotScrollOffset;
+            if (row >= 0 && row < SLOT_TABS.size()) {
+                selectTab(row);
+                return true;
             }
         }
 
         // Cosmetic list clicks
         CosmeticSlot activeSlot = SLOT_TABS.get(selectedTabIndex);
         List<CosmeticDefinition> cosmetics = getCosmeticsForSlot(activeSlot);
-        int listX = guiLeft + 4;
-        int listY = tabY + TAB_H + 16;
-        int listW = WIDTH - 102;
-        int listH = HEIGHT - (listY - guiTop) - 52;
-        int rowH  = 13;
-        if (mouseX >= listX + 1 && mouseX < listX + listW - 1
-                && mouseY >= listY + 1 && mouseY < listY + listH - 1) {
-            int row = ((int) mouseY - (listY + 1)) / rowH + scrollOffset;
+        int divX  = guiLeft + SIDEBAR_W + 1;
+        int listX = divX + 2;
+        int itemY0 = contentY + ROW_H + 2;
+        if (mouseX >= listX && mouseX < listX + LIST_W
+                && mouseY >= itemY0 && mouseY < itemY0 + CONTENT_H - ROW_H - 2) {
+            int row = ((int) mouseY - itemY0) / ROW_H + listScrollOffset;
             if (row >= 0 && row < cosmetics.size()) {
                 selectedCosmeticIndex = row;
             }
         }
 
         // Preset list clicks
-        int presetX = guiLeft + WIDTH - 94;
-        int presetY = listY;
-        int presetW = 88;
-        if (mouseX >= presetX + 1 && mouseX < presetX + presetW - 1
-                && mouseY >= presetY + 1 && mouseY < presetY + listH - 1) {
-            int row = ((int) mouseY - (presetY + 1)) / rowH;
+        int rdivX = listX + LIST_W + 1;
+        int rpX   = rdivX + 2;
+        int sepY  = contentY + PREVIEW_H;
+        int plItemY0 = sepY + 1 + ROW_H + 2;
+        int plH   = PRESET_LIST_H - 1;
+        int plItemH = plH - ROW_H - 2;
+        if (mouseX >= rpX && mouseX < guiLeft + WIDTH - 1
+                && mouseY >= plItemY0 && mouseY < plItemY0 + plItemH) {
+            int row = ((int) mouseY - plItemY0) / ROW_H;
             if (row >= 0 && row < ClientCosmeticState.get().getPresets().size()) {
                 selectedPresetIndex = row;
             }
@@ -294,7 +341,20 @@ public class WardrobeScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        scrollOffset = Math.max(0, scrollOffset - (int) scrollY);
+        final int contentY = guiTop + HEADER_H;
+        int sideX = guiLeft + 1;
+        int divX  = guiLeft + SIDEBAR_W + 1;
+        int listX = divX + 2;
+
+        if (mouseX >= sideX && mouseX < sideX + SIDEBAR_W
+                && mouseY >= contentY && mouseY < contentY + CONTENT_H) {
+            slotScrollOffset = Math.max(0, Math.min(
+                SLOT_TABS.size() - CONTENT_H / ROW_H,
+                slotScrollOffset - (int) scrollY));
+        } else if (mouseX >= listX && mouseX < listX + LIST_W
+                && mouseY >= contentY && mouseY < contentY + CONTENT_H) {
+            listScrollOffset = Math.max(0, listScrollOffset - (int) scrollY);
+        }
         return true;
     }
 
@@ -302,7 +362,7 @@ public class WardrobeScreen extends Screen {
 
     private void selectTab(int idx) {
         selectedTabIndex      = idx;
-        scrollOffset          = 0;
+        listScrollOffset      = 0;
         selectedCosmeticIndex = -1;
     }
 
@@ -362,61 +422,53 @@ public class WardrobeScreen extends Screen {
 
     private void sendEquipPacket(CosmeticSlot slot, String id, boolean forceEquip) {
         RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId());
-        buf.writeUtf(id);
-        buf.writeBoolean(forceEquip);
+        buf.writeUtf(slot.getId()); buf.writeUtf(id); buf.writeBoolean(forceEquip);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "equip_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","equip_c2s"), buf);
     }
 
     private void sendUnequipPacket(CosmeticSlot slot) {
         RegistryFriendlyByteBuf buf = createBuf();
         buf.writeUtf(slot.getId());
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "unequip_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","unequip_c2s"), buf);
     }
 
     private void sendForceEquipPacket(CosmeticSlot slot, boolean value) {
         RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId());
-        buf.writeBoolean(value);
+        buf.writeUtf(slot.getId()); buf.writeBoolean(value);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "force_equip_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","force_equip_c2s"), buf);
     }
 
     private void sendPresetSavePacket(String name) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(name);
+        RegistryFriendlyByteBuf buf = createBuf(); buf.writeUtf(name);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "preset_save_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_save_c2s"), buf);
     }
 
     private void sendPresetLoadPacket(int index) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeVarInt(index);
+        RegistryFriendlyByteBuf buf = createBuf(); buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "preset_load_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_load_c2s"), buf);
     }
 
     private void sendPresetDeletePacket(int index) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeVarInt(index);
+        RegistryFriendlyByteBuf buf = createBuf(); buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "preset_delete_c2s"), buf);
+            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_delete_c2s"), buf);
     }
 
-    // ── Drawing helpers ────────────────────────────────────────────────────────
+    // ── Helpers ────────────────────────────────────────────────────────────────
 
     /**
-     * MC-style inset panel: outer dark shadow → inner blue highlight → inner fill.
+     * Two-layer panel: outer dark shadow → inner bright-blue border → content fill.
      */
     private static void drawPanel(GuiGraphics g, int x, int y, int w, int h) {
-        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, COL_BORDER_DK); // shadow outline
-        g.fill(x,     y,     x + w,     y + h,     COL_BORDER_LT); // blue highlight border
-        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, COL_INNER);    // content area
+        g.fill(x - 1, y - 1, x + w + 1, y + h + 1, COL_BORDER_DK);
+        g.fill(x,     y,     x + w,     y + h,     COL_BORDER_LT);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, COL_PANEL);
     }
-
-    // ── Utilities ──────────────────────────────────────────────────────────────
 
     private List<CosmeticDefinition> getCosmeticsForSlot(CosmeticSlot slot) {
         List<CosmeticDefinition> result = new ArrayList<>();
@@ -426,27 +478,24 @@ public class WardrobeScreen extends Screen {
         return result;
     }
 
-    /** Short tab labels that fit in a 24-px-wide cell. */
     private String slotLabel(CosmeticSlot slot) {
         return switch (slot) {
-            case HELMET      -> "Helm";
-            case ABOVE_HEAD  -> "Top";
-            case CHESTPLATE  -> "Chst";
+            case HELMET      -> "Helmet";
+            case ABOVE_HEAD  -> "Above Head";
+            case CHESTPLATE  -> "Chestplate";
             case BACK        -> "Back";
-            case FRONT       -> "Frnt";
+            case FRONT       -> "Front";
             case LEGS        -> "Legs";
-            case BOOTS       -> "Boot";
-            case ORBIT       -> "Orbt";
+            case BOOTS       -> "Boots";
+            case ORBIT       -> "Orbit";
             case PET         -> "Pet";
-            case WEAPON      -> "Wpn";
-            case SHIELD      -> "Shld";
-            case GRIMOIRE    -> "Grim";
-            case MAGIC_STAFF -> "Mgc";
+            case WEAPON      -> "Weapon";
+            case SHIELD      -> "Shield";
+            case GRIMOIRE    -> "Grimoire";
+            case MAGIC_STAFF -> "Magic Staff";
         };
     }
 
     @Override
-    public boolean isPauseScreen() {
-        return false;
-    }
+    public boolean isPauseScreen() { return false; }
 }
