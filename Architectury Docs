@@ -1,0 +1,635 @@
+# Architectury Development Documentation for Minecraft 1.21.1
+
+## Executive summary
+
+Architectury is a multi-loader modding toolchain comprising the optional entity["organization","Architectury API","minecraft modding api"], entity["organization","Architectury Loom","gradle plugin fork"], and entity["organization","Architectury Plugin","gradle plugin"], with support/community routed primarily through its documentation site and Discord. citeturn14search2
+
+For entity["video_game","Minecraft","sandbox game"] 1.21.1 specifically, the upstream game release (8 Aug 2024) is a “hotfix” release focusing on critical exploit fixes and is explicitly intended as a drop-in upgrade from 1.21 for servers; clients on 1.21 can still join 1.21.1 servers. citeturn21search3 Practically, that means most mod-development “porting work” is about ensuring your toolchain and dependencies align with the 1.21.x ecosystem, rather than reacting to large new gameplay APIs.
+
+In the Architectury ecosystem, Minecraft 1.21–1.21.1 corresponds to the Architectury API **v13** line (example: 13.0.8), distributed as loader-specific artefacts (e.g., a Fabric build and a NeoForge build) rather than a single universal jar. citeturn5view0turn5view1
+
+A key strategic constraint for 1.21.1: Architectury **does not provide a Forge build** for 1.21.1; maintainers have stated this is not planned and that users should use Fabric or NeoForge (or downgrade to an earlier Minecraft version if they must stay on Forge). citeturn24search1 This has direct consequences for how you should structure your multi-loader workspace in 1.21.1: the realistic two-loader target is **Fabric + NeoForge**, not Fabric + Forge. citeturn24search1turn5view1turn5view0
+
+Official Architectury documentation is “capability-based” (networking, registries, events, etc.) rather than being exhaustively versioned per Minecraft patch. citeturn14search0turn17view0turn17view1turn17view2 For detailed API surface (classes/methods), the most reliable workflow is: use the docs for patterns, then jump to source in your IDE via the Maven-provided sources and/or GitHub repository. The 13.0.8 Maven directory, for example, explicitly publishes jars and sources jars (but does not show a published javadoc jar in the directory listing). citeturn26view0
+
+## What “Architectury 1.21.1” means and where the authoritative sources are
+
+In practice, “Architectury 1.21.1” is shorthand for “an Architectury-based development setup targeting Minecraft 1.21.1”, which involves three version axes you should keep conceptually separate:
+
+**Minecraft patch level (1.21.1).** Mojang frames 1.21.1 as a hotfix addressing critical exploits, strongly recommending server owners upgrade; it is compatible enough with 1.21 that 1.21 clients can join 1.21.1 servers. citeturn21search3
+
+**Architectury API (v13.x for 1.21–1.21.1).** The Modrinth release pages show v13.0.8 loader builds marked compatible with game versions 1.21–1.21.1 (separate artefacts for Fabric and NeoForge). citeturn5view0turn5view1
+
+**Toolchain and build plugins (Architectury Loom + Architectury Plugin).** These govern your workspace layout, remapping, transformer pipeline, run configurations, and how “common” code gets transformed into platform-ready output jars. Architectury’s own docs describe the toolchain components (API, Loom fork, Gradle plugin, IDE plugin) and position Discord as a primary support channel. citeturn14search2
+
+### Official documentation and changelog for the 1.21.1 era
+
+**Documentation (official):**
+- The documentation landing page explicitly frames Architectury as a toolchain with an optional API, a custom Loom fork, and a Gradle plugin. citeturn14search2  
+- API feature pages (Networking, Registry, Events, etc.) provide canonical usage patterns and the key classes involved. citeturn17view0turn17view1turn17view2turn18view4turn17view4  
+- Plugin pages provide the build-logic concepts: configurations (e.g., `developmentNeoForge`, `transformProductionNeoForge`), compile-only mode, and the `@ExpectPlatform` workflow. citeturn16view0turn16view1turn16view2turn16view3
+
+**Changelog (official-ish, but primary):**
+- The 1.21-compatible releases link to a GitHub commit history for the `1.21` branch; that commit log includes the initial “Port to 1.21” change and subsequent fixes/updates, serving as the closest thing to a running changelog for the branch. citeturn6view0  
+- Mod distribution pages (e.g., v13.0.8) present a short changelog summary and link out to that commit history. citeturn5view0turn6view0
+
+**Critical constraint: Forge vs NeoForge for 1.21.1.** Maintainers state there is no Forge Architectury for 1.21.1 and recommend Fabric/NeoForge or downgrading; this is not just a packaging detail but a loader-targeting decision. citeturn24search1
+
+A useful mental model is:
+
+```mermaid
+timeline
+  title 1.21.1-era version anchors (Minecraft vs Architectury)
+  2024-06-13 : "Architectury branch work: port to 1.21"
+  2024-08-08 : "Minecraft 1.21.1 hotfix release"
+  2024-10-05 : "Architectury API v13.0.8 (Fabric + NeoForge builds for 1.21–1.21.1)"
+```
+
+The timeline nodes correspond respectively to the GitHub commit history for the 1.21 branch, Mojang’s 1.21.1 release note, and the Modrinth v13.0.8 loader releases covering 1.21–1.21.1. citeturn6view0turn21search3turn5view0turn5view1
+
+## Installation and setup for a Loom-based multi-loader workspace
+
+Architectury’s own “Get Started” guidance is explicit: the preferred on-ramp is to generate a Gradle project via the official template generator, and then follow the plugin/wiki instructions for more advanced configuration (mappings, repositories, etc.). citeturn4view0
+
+Because the requested target is Minecraft 1.21.1, the build setup needs to reflect:
+- two-loader reality: Fabric + NeoForge (not Forge), per maintainer statements for 1.21.1, citeturn24search1
+- modern Loom practice, in which “mod dependencies” use the `modImplementation`/`modApi` variants and are remapped to your mappings, citeturn16view0
+- Java 21 as a baseline development prerequisite on NeoForge, and common practice in 1.21-era modding. citeturn20search10turn12view0
+
+### Reference project layout
+
+A conventional Architectury layout for Fabric + NeoForge is a multi-project build with at least:
+
+- `:common` — loader-agnostic code, assets/data (as a rule of thumb, anything you want shared).
+- `:fabric` — Fabric loader entrypoints + Fabric-only glue.
+- `:neoforge` — NeoForge mod entrypoint + NeoForge-only glue.
+
+This is exactly how modern 1.21.1 Architectury projects in the wild structure their Gradle settings (the `include("common")`, `include("fabric")`, `include("neoforge")` pattern). citeturn12view1
+
+### Example `settings.gradle` for Minecraft 1.21.1
+
+The key parts are:
+- `pluginManagement` repositories so Gradle can resolve the Architectury plugins
+- including the three projects
+
+```gradle
+pluginManagement {
+    repositories {
+        maven { url "https://maven.fabricmc.net/" }
+        maven { url "https://maven.architectury.dev/" }
+        maven { url "https://maven.neoforged.net/releases/" }
+        gradlePluginPortal()
+    }
+}
+
+include("common")
+include("fabric")
+include("neoforge")
+```
+
+This pattern is consistent with real-world 1.21.1 Architectury workspaces and is the minimal “plumbing” needed for plugin resolution and module inclusion. citeturn12view1turn16view0
+
+### Example root `build.gradle` for Minecraft 1.21.1
+
+This root script demonstrates three ideas the official docs keep returning to:
+- declare the Architectury plugins at the root and apply Loom to subprojects, citeturn16view0turn14search2
+- configure mappings in a consistent way, because remapping is fundamental to Loom-based modding, citeturn16view0
+- enforce Java 21 compilation for 1.21-era builds (NeoForge explicitly requires a Java 21 JDK as a prerequisite, and many 1.21.1 workspaces compile with release 21). citeturn20search10turn12view0
+
+```gradle
+plugins {
+    id "architectury-plugin" version "3.4-SNAPSHOT"
+    id "dev.architectury.loom" version "1.9.428" apply false
+}
+
+architectury {
+    minecraft = rootProject.minecraft_version
+}
+
+subprojects {
+    apply plugin: "dev.architectury.loom"
+
+    loom {
+        silentMojangMappingsLicense()
+    }
+
+    dependencies {
+        minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
+        mappings loom.officialMojangMappings()
+    }
+}
+
+allprojects {
+    apply plugin: "java"
+    apply plugin: "architectury-plugin"
+    apply plugin: "maven-publish"
+
+    group = rootProject.maven_group
+    version = rootProject.mod_version
+
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = "UTF-8"
+        options.release = 21
+    }
+
+    java {
+        withSourcesJar()
+    }
+}
+```
+
+The overall shape (root plugin declarations, `architectury { minecraft = ... }`, Loom applied in subprojects, Java 21 release) matches the structure used by 1.21.1 Architectury builds. citeturn12view0
+
+### Mappings options: Mojang mappings vs Yarn + NeoForge patch
+
+The Architectury docs frequently show examples in Mojang mappings (“mojmap”), explicitly noting it in the registry page. citeturn17view1 Mojang mappings are the lowest-friction baseline.
+
+However, some 1.21.1 projects choose Yarn mappings augmented with a NeoForge patch layer for NeoForge compatibility. A concrete example shows `loom.layered` where Yarn mappings are combined with a NeoForge patch mapping artefact. citeturn12view2turn19view3
+
+If you choose this route, treat it as a deliberate trade-off: it can improve development ergonomics if your team prefers Yarn naming, but it increases the “moving parts” in your toolchain (and therefore the ways it can break during updates). The NeoForge migration doc explicitly warns that remapping is not perfect and lists categories that can cause problems (reflection against internals, certain coremod styles, etc.). citeturn19view3
+
+### Maven usage
+
+For mod development, Gradle + (Architectury) Loom is the native path: Loom is a Gradle plugin designed to install Minecraft/mod dependencies in a development environment and manage remapping/run configs. citeturn20search26turn14search19
+
+That said, there are two Maven-adjacent things you may legitimately mean:
+
+1) **Adding Maven repositories in Gradle** (common for mods). Example:
+
+```gradle
+repositories {
+    maven { url "https://maven.architectury.dev/" }
+    maven { url "https://maven.fabricmc.net/" }
+    maven { url "https://maven.neoforged.net/releases/" }
+}
+```
+
+This aligns with how real-world settings for Architectury projects resolve their plugins/dependencies. citeturn12view1turn19view3
+
+2) **Depending on Architectury artefacts from a non-mod Java project**. Architectury publishes Maven artefacts (jars and sources jars) in its own repository; the directory listing for `dev.architectury:architectury:13.0.8` evidences the artefact naming and versioning. citeturn26view0  
+If you take this route, understand that you are outside the “happy path”: you will not get Loom’s remapping features, and most modding tasks still presume Loom-managed environments. citeturn20search26turn16view0
+
+## API reference map for Architectury API v13
+
+### Reality check: “full API reference” vs what is actually published
+
+Architectury’s official docs provide structured “how-to” pages for major subsystems (events, registries, networking, etc.). citeturn14search0turn17view0turn17view1turn18view4 They are not an exhaustive Javadoc mirror.
+
+For v13.0.8, Architectury’s Maven directory listing shows a compiled jar and a sources jar (and checksums), but does not show a javadoc jar in that directory listing. citeturn26view0 As a result, the closest thing to a “full API reference” is typically:
+- browse the sources in your IDE (Gradle will attach sources automatically in most IDEs when available), and
+- use the docs pages to discover the correct entry points and recommended call sites. citeturn17view2turn16view0
+
+What follows is therefore structured as:
+- a **package-and-entrypoint map** (what to look for, and why),
+- a **method-level synopsis for the documented public entry points** (with signatures as presented in the official docs),
+- and explicit notes where behaviour differs by platform or environment.
+
+### Core API components, their roles, and their key entry points
+
+| Concern | Architectury entry point(s) | Why it exists | Cross-platform caveats |
+|---|---|---|---|
+| Loader/platform introspection | `Platform` helper methods (`isFabric`, `isForge`, `getConfigFolder`, `getMod`, etc.) | Avoid writing loader-specific detection code; standardise access to game/mod folders and mod metadata. citeturn17view3 | `getMod(String)` throws if missing, whereas `getOptionalMod(String)` is safe. citeturn17view3 |
+| Event bus & callbacks | Event classes such as `EntityEvent`, `ClientTickEvent`, and result types such as `EventResult` | Provide Fabric-style callback subscriptions in common code, abstracting per-loader event frameworks. citeturn17view2turn18view0 | You must still align call sites with environment (client-only vs dedicated server). citeturn18view0 |
+| Registries | `RegistrarManager`/`Registrar` and `DeferredRegister`/`RegistrySupplier` | Normalise registration across loaders, especially for Forge-like loaders that gate registration behind registry events. citeturn17view1 | Forge/NeoForge require sharing your mod event bus with Architectury via `EventBuses.registerModEventBus`. citeturn17view1 |
+| Networking | `NetworkManager` (receiver registration + raw packet send), `NetworkChannel` (message-style API) | Provide basic abstraction over Fabric and Forge/NeoForge networking patterns. citeturn17view0 | Side (C2S vs S2C) determines whether handlers live in common or client-only initialisation. citeturn17view0 |
+| Menus & screens | `MenuRegistry` methods (`openMenu`, `openExtendedMenu`, `registerScreenFactory`, `of`, `ofExtended`) | Standardise container + screen registration/opening across loaders. citeturn18view4 | Screen registration should happen during the client setup lifecycle event. citeturn18view4 |
+| Reload listeners | `ReloadListenerRegistry.register(...)` overloads | Standardise resource reload listener registration (client resources, server data, etc.). citeturn17view4 | Dependency ordering for listeners “only functions on Fabric or Quilt”. citeturn17view4 |
+| Key bindings | `KeyMappingRegistry.register(KeyMapping)` + tick events | Register client keybinds and consume input events consistently. citeturn18view0 | Must be executed client-side. citeturn18view0 |
+| Fuels | `FuelRegistry.register(int, item)` and `FuelRegistry.get(stack)` | Simplify furnace fuel time registration. citeturn18view3 | None called out in docs; still treat as server-safe, data-driven logic. citeturn18view3 |
+| Fluids | `FluidStack`, `ArchitecturyFluidAttributes`, helper hooks, flowing fluid wrappers | Provide a loader-agnostic representation and helper constructors for fluids/blocks/buckets. citeturn18view1 | Bucket “amount” units differ; also registration order matters on Fabric (immediate registration). citeturn18view1 |
+| Creative tabs | `CreativeTabRegistry` helpers + `arch$tab` item property extension | Smooth over version differences in creative tab creation and tab assignment. citeturn18view2turn19view1 | The API changed across Minecraft versions; v9 migration highlights the registrar-based approach. citeturn19view1 |
+
+### Method-level synopsis for documented entry points
+
+The official documentation explicitly calls out the following methods (shown here with the signatures/formats used in the docs, which generally follow Mojang mappings naming):
+
+**Platform abstraction (`Platform`).** The docs describe a set of “loader facts” and folder/mod metadata accessors:
+- `Platform.isFabric()` — true for Fabric-like loaders (including Quilt) citeturn17view3  
+- `Platform.isForge()` — whether current loader is Forge citeturn17view3  
+- `Platform.getCurrentVersion()` — returns Minecraft version citeturn17view3  
+- `Platform.getGameFolder()`, `getConfigFolder()`, `getModsFolder()` — path accessors citeturn17view3  
+- `Platform.getEnvironment()` — returns a platform-agnostic wrapper (`CLIENT`/`SERVER`) citeturn17view3  
+- `Platform.getEnv()` — same idea, but requires injectables and returns loader-specific type via remapping citeturn17view3  
+- `Platform.isModLoaded(String id)`; `getMod(String id)`; `getOptionalMod(String id)`; `getMods()`; `getModIds()` citeturn17view3  
+  - `getMod(String id)` throws `NoSuchElementException` if missing; this is an explicit API contract. citeturn17view3  
+- `Platform.isDevelopmentEnvironment()` citeturn17view3  
+
+**Networking.**
+- Raw receiver callback:
+  - `NetworkManager.registerReceiver(NetworkManager.Side.S2C|C2S, ResourceLocation id, (buf, context) -> { ... })` citeturn17view0  
+  - send helpers: `NetworkManager.sendToServer(id, buf)` and `NetworkManager.sendToPlayer(player, id, buf)` citeturn17view0  
+- Message-channel API:
+  - channel creation: `NetworkChannel.create(ResourceLocation id)` citeturn17view0  
+  - registration: `CHANNEL.register(ExampleMessage.class, ExampleMessage::encode, ExampleMessage::new, ExampleMessage::apply)` citeturn17view0  
+
+**Registries.**
+- Event bus bridging for Forge-like loaders:
+  - `EventBuses.registerModEventBus(MOD_ID, FMLJavaModLoadingContext.get().getModEventBus())` citeturn17view1  
+- Registrar approach (lazy manager):
+  - `RegistrarManager.get(MOD_ID)` and then `manager.get().get(Registries.ITEM)` returning a `Registrar<Item>` citeturn17view1  
+  - register returns `RegistrySupplier<T>` (signals deferred availability). citeturn17view1  
+- Deferred register approach:
+  - `DeferredRegister.create(MOD_ID, Registries.ITEM)` (for newer versions) citeturn17view1  
+  - `ITEMS.register("example_item", supplier)` returning `RegistrySupplier<Item>` citeturn17view1  
+  - finalisation: `ITEMS.register()` citeturn17view1  
+
+**Events and results.**
+- Example subscription:
+  - `EntityEvent.LIVING_HURT.register((LivingEntity entity, DamageSource source, float amount) -> EventResult.interruptFalse());` citeturn17view2  
+
+**Reload listeners.**
+- Overloads documented:
+  - `register(PackType, PreparableReloadListener)` citeturn17view4  
+  - `register(PackType, PreparableReloadListener, ResourceLocation listenerId)` citeturn17view4  
+  - `register(PackType, PreparableReloadListener, ResourceLocation listenerId, Collection<ResourceLocation> dependencies)` citeturn17view4  
+  - dependency sorting caveat: “only functions on Fabric or Quilt”. citeturn17view4  
+
+**Menus.**
+- Opening:
+  - `openExtendedMenu(ServerPlayer, MenuProvider, Consumer<FriendlyByteBuf>)` citeturn18view4  
+  - `openMenu(ServerPlayer, MenuProvider)` citeturn18view4  
+- MenuType building:
+  - `of(SimpleMenuTypeFactory<T>)` and `ofExtended(ExtendedMenuTypeFactory<T>)` citeturn18view4  
+- Screen registration:
+  - `registerScreenFactory(MenuType<? extends H>, ScreenFactory<H, S>)` and the guidance to do so in `ClientLifecycleEvent.CLIENT_SETUP`. citeturn18view4  
+
+**Key mappings.**
+- Registration:
+  - `KeyMappingRegistry.register(KeyMapping)` citeturn18view0  
+- Consumption pattern:
+  - `ClientTickEvent.CLIENT_POST.register(minecraft -> { while (KEY.consumeClick()) { ... } });` citeturn18view0  
+
+**Fuel.**
+- `FuelRegistry.register(ticks, item)` and lookup by stack with `FuelRegistry.get(new ItemStack(item))`. citeturn18view3  
+
+**Fluids (selected behavioural contracts).**
+- `FluidStack` amount semantics differ by loader: bucket amount is `81000L` on Fabric and `1000` on Forge. citeturn18view1  
+- Conversion hooks differ in copy semantics and can be memory-intensive when wrapping platform types. citeturn18view1  
+- Registration order matters on Fabric (immediate registration), and the docs explicitly recommend registering fluids before blocks/items when using deferred registers. citeturn18view1  
+
+## Minimal working examples for common cross-platform tasks
+
+The examples below are intended as “minimum viable patterns” that align with the official docs. Where the underlying loader has multiple valid ways to initialise, the examples stick to Architectury’s abstractions to minimise loader-specific coupling.
+
+### Cross-platform mod entry and lifecycle wiring
+
+A robust pattern is: call a single `CommonInit.init()` from each loader entrypoint, and put “client-only” registrations inside Architectury client lifecycle events rather than relying on loader-specific client entrypoints. This is consistent with the docs’ framing that callbacks can be made from your common init, and that client registrations (e.g., screens) should happen during the client setup lifecycle event. citeturn17view2turn18view4
+
+```java
+// common/src/main/java/com/example/examplemod/ExampleMod.java
+package com.example.examplemod;
+
+import dev.architectury.event.events.client.ClientLifecycleEvent;
+
+public final class ExampleMod {
+    public static final String MOD_ID = "examplemod";
+
+    public static void init() {
+        ExampleRegistries.registerAll();
+        ExampleNetworking.registerC2SPackets();
+        ExampleEvents.registerCommonEvents();
+
+        ClientLifecycleEvent.CLIENT_SETUP.register(client -> {
+            ExampleClient.registerClientOnly();
+        });
+    }
+}
+```
+
+The use of `ClientLifecycleEvent.CLIENT_SETUP` mirrors the MenuRegistry guidance for registering screen factories during client setup. citeturn18view4turn17view2
+
+### Platform-specific code without classloading traps
+
+Architectury’s docs describe two major approaches:
+
+**Approach A: `@ExpectPlatform` (Architectury Injectables).** This is the most “Architectury-native” pattern, but it only applies to static methods and relies on a naming convention: platform package suffix (e.g., `.fabric`) and an `Impl` suffix on the implementation class name. citeturn16view2turn16view3
+
+```java
+// common/src/main/java/com/example/examplemod/PlatformHooks.java
+package com.example.examplemod;
+
+import dev.architectury.injectables.annotations.ExpectPlatform;
+
+public final class PlatformHooks {
+    private PlatformHooks() {}
+
+    @ExpectPlatform
+    public static String getLoaderName() {
+        // If this throws at runtime, your injectables/transformer pipeline is not applying.
+        throw new AssertionError();
+    }
+}
+```
+
+```java
+// fabric/src/main/java/com/example/examplemod/fabric/PlatformHooksImpl.java
+package com.example.examplemod.fabric;
+
+import com.example.examplemod.PlatformHooks;
+
+public final class PlatformHooksImpl extends PlatformHooks {
+    public static String getLoaderName() {
+        return "fabric";
+    }
+}
+```
+
+```java
+// neoforge/src/main/java/com/example/examplemod/neoforge/PlatformHooksImpl.java
+package com.example.examplemod.neoforge;
+
+import com.example.examplemod.PlatformHooks;
+
+public final class PlatformHooksImpl extends PlatformHooks {
+    public static String getLoaderName() {
+        return "neoforge";
+    }
+}
+```
+
+This pattern directly follows the official naming and scoping rules described in the `@ExpectPlatform` docs. citeturn16view2turn16view3
+
+**Approach B: “plain Java” (interfaces / ServiceLoader).** The docs explicitly recommend that you are not forced to use injectables and can implement platform glue with simpler Java patterns if you dislike annotation-based replacement. citeturn16view3
+
+### Registries with `DeferredRegister` and safe access via `RegistrySupplier`
+
+Architectury’s registry docs explain why this is hard on Forge-like loaders (registration gated by events) and why wrapper registries return deferred handles (`RegistrySupplier`) rather than the object immediately. citeturn17view1
+
+```java
+// common/src/main/java/com/example/examplemod/ExampleRegistries.java
+package com.example.examplemod;
+
+import dev.architectury.registry.registries.DeferredRegister;
+import dev.architectury.registry.registries.RegistrySupplier;
+
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.item.Item;
+
+public final class ExampleRegistries {
+    private ExampleRegistries() {}
+
+    public static final DeferredRegister<Item> ITEMS =
+            DeferredRegister.create(ExampleMod.MOD_ID, Registries.ITEM);
+
+    public static final RegistrySupplier<Item> EXAMPLE_ITEM =
+            ITEMS.register("example_item", () -> new Item(new Item.Properties()));
+
+    public static void registerAll() {
+        ITEMS.register();
+    }
+}
+```
+
+This exactly matches the documented pattern: declare a deferred register, register entries to it, then call `.register()` during initialisation. citeturn17view1
+
+If you target Forge-like loaders, also follow the documented requirement to expose your mod event bus to Architectury so it can listen for registry events. citeturn17view1
+
+### Events: intercepting damage
+
+Architectury’s events page shows a canonical, minimal example: intercept `LIVING_HURT` and return an `EventResult` that interrupts propagation. citeturn17view2
+
+```java
+// common/src/main/java/com/example/examplemod/ExampleEvents.java
+package com.example.examplemod;
+
+import dev.architectury.event.EventResult;
+import dev.architectury.event.events.common.EntityEvent;
+
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
+
+public final class ExampleEvents {
+    private ExampleEvents() {}
+
+    public static void registerCommonEvents() {
+        EntityEvent.LIVING_HURT.register((LivingEntity entity, DamageSource source, float amount) ->
+                EventResult.interruptFalse()
+        );
+    }
+}
+```
+
+### Networking: raw packets and message channels
+
+Architectury networking docs provide two patterns: a raw `registerReceiver` callback, and a higher-level `NetworkChannel` message type API. citeturn17view0
+
+**Raw receiver (C2S):**
+
+```java
+// common/src/main/java/com/example/examplemod/ExampleNetworking.java
+package com.example.examplemod;
+
+import dev.architectury.networking.NetworkManager;
+
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.network.FriendlyByteBuf;
+
+public final class ExampleNetworking {
+    private ExampleNetworking() {}
+
+    public static final ResourceLocation EXAMPLE_PACKET_ID =
+            new ResourceLocation(ExampleMod.MOD_ID, "example_packet");
+
+    public static void registerC2SPackets() {
+        NetworkManager.registerReceiver(NetworkManager.Side.C2S, EXAMPLE_PACKET_ID, (FriendlyByteBuf buf, NetworkManager.PacketContext context) -> {
+            int someValue = buf.readVarInt();
+
+            // Important: do game-world mutations on the correct thread.
+            context.queue(() -> {
+                Player player = context.getPlayer();
+                // Handle packet
+            });
+        });
+    }
+}
+```
+
+This reflects the doc’s C2S registration model (register in common), and its explanation that the sender direction determines where you register the receiver. citeturn17view0
+
+**Message channel:**
+
+```java
+// common/src/main/java/com/example/examplemod/ExampleChannel.java
+package com.example.examplemod;
+
+import dev.architectury.networking.NetworkChannel;
+import dev.architectury.networking.NetworkManager;
+
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.network.FriendlyByteBuf;
+
+import java.util.function.Supplier;
+
+public final class ExampleChannel {
+    public static final NetworkChannel CHANNEL =
+            NetworkChannel.create(new ResourceLocation(ExampleMod.MOD_ID, "networking_channel"));
+
+    public static void init() {
+        CHANNEL.register(ExampleMessage.class, ExampleMessage::encode, ExampleMessage::new, ExampleMessage::apply);
+    }
+
+    public static final class ExampleMessage {
+        private final int value;
+
+        public ExampleMessage(int value) {
+            this.value = value;
+        }
+
+        public ExampleMessage(FriendlyByteBuf buf) {
+            this.value = buf.readVarInt();
+        }
+
+        public void encode(FriendlyByteBuf buf) {
+            buf.writeVarInt(value);
+        }
+
+        public void apply(Supplier<NetworkManager.PacketContext> contextSupplier) {
+            contextSupplier.get().queue(() -> {
+                // Handle
+            });
+        }
+    }
+}
+```
+
+The structure mirrors the official message-channel example: constructor decode, `encode`, and `apply` with a context supplier. citeturn17view0
+
+### Menus: opening, registering MenuTypes, and screens
+
+The official MenuRegistry docs give explicit method names and a complete example covering:
+- creating a `MenuType` via `MenuRegistry.of`,
+- registering a screen factory in `ClientLifecycleEvent.CLIENT_SETUP`,
+- opening the menu via `MenuRegistry.openMenu`. citeturn18view4
+
+A minimal adaptation:
+
+```java
+// common/src/main/java/com/example/examplemod/ExampleMenus.java
+package com.example.examplemod;
+
+import dev.architectury.registry.registries.DeferredRegister;
+import dev.architectury.registry.registries.RegistrySupplier;
+import dev.architectury.registry.menu.MenuRegistry;
+
+import net.minecraft.core.registries.Registries;
+import net.minecraft.world.inventory.AbstractContainerMenu;
+import net.minecraft.world.inventory.MenuType;
+
+public final class ExampleMenus {
+    private ExampleMenus() {}
+
+    public static final DeferredRegister<MenuType<?>> MENUS =
+            DeferredRegister.create(ExampleMod.MOD_ID, Registries.MENU);
+
+    public static final RegistrySupplier<MenuType<ExampleMenu>> EXAMPLE_MENU =
+            MENUS.register("example_menu", () -> MenuRegistry.of(ExampleMenu::new));
+
+    public static void register() {
+        MENUS.register();
+    }
+
+    public static final class ExampleMenu extends AbstractContainerMenu {
+        protected ExampleMenu(int id, net.minecraft.world.entity.player.Inventory inv) {
+            super(EXAMPLE_MENU.get(), id);
+        }
+
+        @Override
+        public boolean stillValid(net.minecraft.world.entity.player.Player player) {
+            return true;
+        }
+    }
+}
+```
+
+Then, on client setup, register the screen factory (as per the docs). citeturn18view4
+
+## Migration notes from prior Architectury versions
+
+Architectury provides migration notes for major API/version shifts. These are especially valuable because they call out breaking signature/semantic changes that will not be obvious if you only rely on IDE autocomplete.
+
+### Migration points that still matter when targeting 1.21.1
+
+Even if you are “only” targeting 1.21.1, you will frequently be migrating code written for older versions. The following are explicitly documented breaking changes:
+
+**Architectury 7 (Minecraft 1.19.3):** creative tabs become deferred on Forge; `TabSupplier` is introduced; the vanilla `Item.Properties.tab()` method is removed, replaced by Architectury’s `arch$tab`. citeturn19view0
+
+**Architectury 9 (Minecraft 1.20):**
+- GUI rendering events switch from `PoseStack` to `GuiGraphics`. citeturn19view1  
+- Loot-related events shift from `LootTables` to `LootDataManager`. citeturn19view1  
+- Creative tabs migrate to the normal registry/registrar system (e.g., `DeferredRegister<CreativeModeTab>`). citeturn19view1turn18view2  
+
+**Architectury 10 (Minecraft 1.20.2):**
+- Some mouse scroll events add an `amountX` parameter (changing callback signatures). citeturn19view2  
+- `PLAYER_ADVANCEMENT` changes to provide `AdvancementHolder` rather than `Advancement`. citeturn19view2  
+- `StandardRegistrarOption.SAVE_TO_DISC` removal is called out as a Fabric-driven change. citeturn19view2  
+
+### Migration to NeoForge and implications for 1.21.1
+
+For the 1.21.x era, the strategic migration is not merely “Forge → newer Forge”, but **Forge → NeoForge** (if you want a Forge-like loader at all).
+
+Architectury’s NeoForge migration page:
+- states that NeoForge support was introduced into the toolchain (via Architectury Loom), citeturn19view3  
+- explains that NeoForge removed SRG as intermediary and that Architectury Loom adds extra machinery to support Yarn mappings, while warning that remapping may not be perfect, citeturn19view3  
+- lists specific practices likely to cause pain in this setup (ATs must be Mojang mappings; don’t use JS coremods; avoid reflection into Minecraft internals; MixinExtras may not remap correctly under Yarn). citeturn19view3
+
+For Minecraft 1.21.1 specifically, maintainers have stated a Forge build is not supported/planned; you should treat Fabric + NeoForge as the primary supported multi-loader pairing. citeturn24search1turn5view1turn5view0
+
+## Compatibility, limitations, troubleshooting, and community resources
+
+### Platform compatibility and limitations for 1.21.1
+
+**Loader targeting reality (1.21.1):**
+- Architectury API provides 1.21–1.21.1 builds for Fabric and NeoForge (e.g., v13.0.8 builds explicitly tagged for 1.21–1.21.1). citeturn5view0turn5view1  
+- Maintainers state there is no Forge build for 1.21.1 and that a port is not planned. citeturn24search1
+
+**Environment constraints:**
+- NeoForge’s getting-started docs list Java 21 JDK + 64-bit JVM as prerequisites. citeturn20search10  
+- Architectury docs caution that OptiFine support is not guaranteed. citeturn14search0  
+
+**API-level caveats explicitly documented:**
+- Reload listener dependency ordering only works on Fabric/Quilt. citeturn17view4  
+- `FluidStack` amount semantics differ by loader, and registration order for fluids matters on Fabric because registration is immediate. citeturn18view1  
+- `Platform.getMod(String)` throws if the mod is missing; use `getOptionalMod` when probing optional dependencies. citeturn17view3  
+- Compile-only mode exists but explicitly disables injectables and `@ExpectPlatform` application at runtime. citeturn16view1turn16view2  
+
+### Common issues and troubleshooting patterns
+
+**“My Forge 1.21.1 mod requires Architectury API; what do I do?”**  
+If the mod is genuinely a Forge-only 1.21.1 mod and requires Architectury API, you are in an unsupported corner: maintainers explicitly indicate Forge support for Architectury on 1.21.1 is not planned; the actionable options are (a) use Fabric/NeoForge builds of the mod (if provided) or (b) downgrade your Minecraft version to one where Forge builds exist. citeturn24search1
+
+**Registries not firing / content not registering on Forge-like loaders.**  
+Architectury’s registry docs are explicit that Forge disallows vanilla registry registration patterns and that you must expose your mod event bus to Architectury so it can listen to registry events; failing to do this can manifest as “nothing registers” or null lookups. citeturn17view1
+
+**Classloading errors caused by client-only code running on server.**  
+Architectury’s key mapping docs explicitly warn that key mapping code should only be executed on the client; similarly, screen registration is documented to occur during client setup. If you put these calls in common init without environment gating, you can provoke server-side crashes. citeturn18view0turn18view4  
+A practical mitigation is to register client-only actions inside `ClientLifecycleEvent.CLIENT_SETUP` rather than unconditional static initialisers. citeturn18view4turn17view2
+
+**NeoForge-specific behavioural mismatches (menus/screens example).**  
+A reported 1.21.1-era issue claims NeoForge does not register menus/screens as expected using `MenuRegistry.registerScreenFactory`, requiring manual registration via NeoForge events, while Fabric works with the Architectury event approach. citeturn24search5  
+Treat this as a risk indicator: when you hit a loader-specific bug, your “common-first” approach may need an escape hatch (either a platform-specific implementation or a conditional workaround).
+
+**Data generation / mappings issues under Yarn + NeoForge patch setups.**  
+A reported issue shows NeoForge datagen failing in a Yarn + NeoForge patch context (explicitly listing versions: Minecraft 1.21, Architectury API 13.0.8, NeoForge beta, Yarn + patch versions). citeturn13search14  
+This aligns with the NeoForge migration warning that remapping is not perfect and that certain tooling interactions may break. citeturn19view3
+
+### FAQs: blunt answers
+
+**Do I “need” Architectury API if I use the toolchain?**  
+No. Architectury docs and project descriptions position the API as optional; the toolchain can be used without adopting all API abstractions. citeturn14search2turn13search4
+
+**Should I rely on `Platform.isFabric()` and `Platform.isForge()` to branch logic?**  
+Use it for *behavioural* branching only when you can keep loader-specific classes out of the common classpath. The Platform API exists to make loader introspection possible, but it does not magically prevent classloading issues if you reference Fabric-only/NeoForge-only types directly in common code. citeturn17view3turn16view3
+
+**Is compile-only mode a good idea?**  
+Only if you explicitly want to avoid the runtime transformer (e.g., for hot swapping constraints) and you accept the documented trade-off that injectables and `@ExpectPlatform` won’t apply at runtime. citeturn16view1turn16view2
+
+### Community and learning resources
+
+Architectury’s main documentation site points users towards Discord for support/discussions and links out to the toolchain components (API, Loom fork, Gradle plugin). citeturn14search2turn14search6
+
+For broader context on the underlying toolchain pieces you will inevitably touch even in an Architectury workspace:
+- Fabric’s update blog for 1.21/1.21.1 explicitly recommends a Loom version for 1.21 development, reinforcing Loom as the baseline dev tooling even when you are “inside” Architectury. citeturn20search7  
+- NeoForge’s getting-started docs describe prerequisites and basic assumptions for NeoForge mod development (notably Java 21). citeturn20search10
+
+Finally, if you are trying to validate real-world Gradle wiring, examining active 1.21.1 Architectury repositories (module layout, pluginManagement repositories, mapping layering choices) is often more actionable than reading abstract guidance, because it reveals the concrete state of the ecosystem’s “working defaults”. citeturn12view1turn12view0turn12view2

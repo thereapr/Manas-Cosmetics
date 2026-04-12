@@ -110,9 +110,7 @@ public final class BBModelRenderer {
         float y1 = cube.to()[1]   * UNITS_TO_BLOCKS;
         float z1 = cube.to()[2]   * UNITS_TO_BLOCKS;
 
-        Matrix4f pose    = ps.last().pose();
-        Matrix3f normal  = ps.last().normal();
-
+        
         for (Map.Entry<String, BBModelData.Face> entry : cube.faces().entrySet()) {
             BBModelData.Face face = entry.getValue();
             float u0 = face.uv()[0] / texW;
@@ -121,17 +119,17 @@ public final class BBModelRenderer {
             float v1 = face.uv()[3] / texH;
 
             switch (entry.getKey()) {
-                case "north" -> quad(consumer, pose, normal, light,
+                case "north" -> quad(consumer, ps, light,
                     x1,y1,z0,  x0,y1,z0,  x0,y0,z0,  x1,y0,z0,  u0,v0,u1,v1,  0,0,-1);
-                case "south" -> quad(consumer, pose, normal, light,
+                case "south" -> quad(consumer, ps, light,
                     x0,y1,z1,  x1,y1,z1,  x1,y0,z1,  x0,y0,z1,  u0,v0,u1,v1,  0,0,1);
-                case "west"  -> quad(consumer, pose, normal, light,
+                case "west"  -> quad(consumer, ps, light,
                     x0,y1,z0,  x0,y1,z1,  x0,y0,z1,  x0,y0,z0,  u0,v0,u1,v1, -1,0,0);
-                case "east"  -> quad(consumer, pose, normal, light,
+                case "east"  -> quad(consumer, ps, light,
                     x1,y1,z1,  x1,y1,z0,  x1,y0,z0,  x1,y0,z1,  u0,v0,u1,v1,  1,0,0);
-                case "up"    -> quad(consumer, pose, normal, light,
+                case "up"    -> quad(consumer, ps, light,
                     x0,y1,z0,  x1,y1,z0,  x1,y1,z1,  x0,y1,z1,  u0,v0,u1,v1,  0,1,0);
-                case "down"  -> quad(consumer, pose, normal, light,
+                case "down"  -> quad(consumer, ps, light,
                     x0,y0,z1,  x1,y0,z1,  x1,y0,z0,  x0,y0,z0,  u0,v0,u1,v1,  0,-1,0);
             }
         }
@@ -139,7 +137,7 @@ public final class BBModelRenderer {
         ps.popPose();
     }
 
-    private static void quad(VertexConsumer buf, Matrix4f pose, Matrix3f normal, int light,
+    private static void quad(VertexConsumer buf, PoseStack poseStack, int light,
                               float x0, float y0, float z0,
                               float x1, float y1, float z1,
                               float x2, float y2, float z2,
