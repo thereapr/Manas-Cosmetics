@@ -146,6 +146,8 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
                 "manas_cosmetics", "dynamic/" + k.replace(':', '/'));
             if (model.textureBytes().length > 0) {
                 uploadTexture(loc, model.textureBytes());
+            } else {
+                uploadFallbackTexture(loc);
             }
             return loc;
         });
@@ -160,8 +162,20 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
                 DynamicTexture tex = new DynamicTexture(image);
                 mc.getTextureManager().register(loc, tex);
             } catch (Exception e) {
-                // Log and continue — cosmetic will render without texture
+                // PNG parse failed — fall back to a 1×1 white texture so the mesh is still visible
+                uploadFallbackTexture(loc);
             }
+        });
+    }
+
+    /** Registers a 1×1 opaque-white texture so the mesh renders rather than crashing. */
+    private static void uploadFallbackTexture(ResourceLocation loc) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        mc.execute(() -> {
+            com.mojang.blaze3d.platform.NativeImage image =
+                new com.mojang.blaze3d.platform.NativeImage(1, 1, false);
+            image.setPixelRGBA(0, 0, 0xFFFFFFFF);
+            mc.getTextureManager().register(loc, new DynamicTexture(image));
         });
     }
 

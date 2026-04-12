@@ -15,9 +15,14 @@ public final class ManasCosmeticsNeoForge {
     public ManasCosmeticsNeoForge(IEventBus modBus) {
         ManasCosmetics.init();
 
-        // Register entity attribute defaults
+        // Register entity attribute defaults (both sides)
         modBus.addListener(ManasCosmeticsNeoForge::registerAttributes);
 
+        // Client-only init: keybindings, S2C packets, etc.
+        // Java lazy class loading means ManasCosmticsClient is never loaded on a
+        // dedicated server because this branch never executes there.
+        // Render layer registration lives in ManasCosmeticsNeoForgeClient, which
+        // is guarded by @EventBusSubscriber(value = Dist.CLIENT).
         if (FMLEnvironment.dist == Dist.CLIENT) {
             io.github.manasmods.manas_cosmetics.client.ManasCosmticsClient.init();
         }
