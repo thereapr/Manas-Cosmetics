@@ -12,6 +12,7 @@
     "sources": "https://github.com/FabricMC/fabric-example-mod"
   },
   "license": "All Rights Reserved",
+  "accessWidener": "manas_cosmetics.accesswidener",
   "icon": "assets/manas_cosmetics/icon.png",
   "environment": "*",
   "entrypoints": {
