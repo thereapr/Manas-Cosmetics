@@ -105,16 +105,17 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     // ── Slot attachment transforms ─────────────────────────────────────────────
 
     private static void applySlotTransform(PoseStack ps, CosmeticSlot slot, Player player, float pt) {
+        // In the render-layer pose stack, +Z is the player's back (matches vanilla ElytraLayer).
         switch (slot) {
-            case HELMET      -> { ps.translate(0, 0.25, 0); }
-            case ABOVE_HEAD  -> { ps.translate(0, 0.9, 0); }
-            case CHESTPLATE  -> { ps.translate(0, 0.1, 0); }
-            case BACK        -> { ps.translate(0, 0.1, -0.2); }
-            case FRONT       -> { ps.translate(0, 0.1,  0.2); }
-            case LEGS        -> { ps.translate(0, -0.2, 0); }
-            case BOOTS       -> { ps.translate(0, -0.7, 0); }
+            case HELMET      -> ps.translate(0,  0.25,  0);
+            case ABOVE_HEAD  -> ps.translate(0,  0.9,   0);
+            case CHESTPLATE  -> ps.translate(0,  0.1,   0);
+            case BACK        -> ps.translate(0,  0.0,   0.125); // vanilla elytra anchor
+            case FRONT       -> ps.translate(0,  0.1,  -0.2);
+            case LEGS        -> ps.translate(0, -0.2,   0);
+            case BOOTS       -> ps.translate(0, -0.7,   0);
             case ORBIT       -> applyOrbitTransform(ps, player, pt);
-            case PET         -> {} // pet entity handles its own position
+            case PET         -> {}  // pet entity handles its own position
             case WEAPON, SHIELD, GRIMOIRE, MAGIC_STAFF -> applyHandTransform(ps, player);
         }
     }
