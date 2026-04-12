@@ -3,6 +3,8 @@ package io.github.manasmods.manas_cosmetics.core;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
+import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
+import io.github.manasmods.manas_cosmetics.api.WeaponType;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelParser;
 import net.minecraft.server.MinecraftServer;
@@ -56,7 +58,20 @@ public final class CosmeticManager {
     private void ensureDirectories() {
         try {
             Files.createDirectories(configRoot.resolve("cosmetics"));
-            Files.createDirectories(configRoot.resolve("models"));
+            // Create a subdirectory under models/ for every cosmetic slot.
+            // The weapon slot gets a further subfolder per weapon type so that
+            // the generator can deduce both slot and weapon_type from the path.
+            for (CosmeticSlot slot : CosmeticSlot.values()) {
+                if (slot == CosmeticSlot.WEAPON) {
+                    for (WeaponType type : WeaponType.values()) {
+                        Files.createDirectories(
+                            configRoot.resolve("models").resolve("weapon").resolve(type.getId())
+                        );
+                    }
+                } else {
+                    Files.createDirectories(configRoot.resolve("models").resolve(slot.getId()));
+                }
+            }
         } catch (IOException e) {
             LOGGER.error("Failed to create manas_cosmetics config directories", e);
         }
@@ -64,7 +79,6 @@ public final class CosmeticManager {
 
     private void writeReadme() {
         Path readme = configRoot.resolve("README.txt");
-        if (Files.exists(readme)) return;
         String content = """
             Manas Cosmetics Configuration
             ==============================
@@ -73,13 +87,59 @@ public final class CosmeticManager {
             Each .json file in the cosmetics/ folder defines a single cosmetic item
             that can be equipped by players.
 
-            How to add a cosmetic:
-            1. Drop your .bbmodel file into:  config/manas_cosmetics/models/
-            2. Create a .json file in:        config/manas_cosmetics/cosmetics/
-            3. Run /manas_cosmetics reload in-game — no server restart needed.
+            ──────────────────────────────────────────────────────────────────────
+            Quick Start (Recommended Workflow)
+            ──────────────────────────────────────────────────────────────────────
+
+            1. Drop your .bbmodel file into the correct slot subfolder under models/
+               (see "Models Directory Structure" below for the folder layout).
+            2. Run /manas_cosmetics generate in-game.
+               This scans every slot subfolder and creates a .json sidecar in
+               cosmetics/ for every .bbmodel that doesn't already have one.
+               The command also performs a reload, so cosmetics are live immediately.
+            3. (Optional) Open the generated .json in cosmetics/ and tweak the
+               scale, offset, rotation, or display_name to taste.
+            4. If you edited a .json, run /manas_cosmetics reload to apply changes.
 
             ──────────────────────────────────────────────────────────────────────
-            Cosmetic File Structure
+            Models Directory Structure
+            ──────────────────────────────────────────────────────────────────────
+
+            Place .bbmodel files in the subfolder that matches the cosmetic slot.
+            The slot (and, for weapons, the weapon type) is deduced from the path
+            automatically when you run /manas_cosmetics generate.
+
+              models/
+                helmet/            ← hat/crown cosmetics
+                above_head/        ← floating items above the head
+                chestplate/        ← chest cosmetics
+                back/              ← wings, capes, backpacks
+                front/             ← chest-front cosmetics
+                legs/              ← leg cosmetics
+                boots/             ← foot cosmetics
+                orbit/             ← orbiting particles/objects
+                pet/               ← companion pet models
+                weapon/            ← main-hand weapon overlays
+                  sword/           ←   shown when holding a sword
+                  longsword/       ←   shown when holding a longsword
+                  katana/          ←   shown when holding a katana
+                  kodachi/         ←   shown when holding a kodachi
+                  spear/           ←   shown when holding a spear
+                  hammer/          ←   shown when holding a hammer
+                  axe/             ←   shown when holding an axe
+                  scythe/          ←   shown when holding a scythe
+                  bow/             ←   shown when holding a bow
+                  kunai/           ←   shown when holding a kunai
+                  shield/          ←   shown when holding a shield
+                  grimoire/        ←   shown when holding a grimoire
+                  magic_staff/     ←   shown when holding a magic staff
+                  any/             ←   shown with any weapon
+                shield/            ← off-hand shield slot cosmetics
+                grimoire/          ← off-hand grimoire slot cosmetics
+                magic_staff/       ← main-hand magic staff slot cosmetics
+
+            ──────────────────────────────────────────────────────────────────────
+            Cosmetic .json File Structure
             ──────────────────────────────────────────────────────────────────────
 
             {
@@ -88,7 +148,7 @@ public final class CosmeticManager {
               "slot":                "back",
               "weapon_type":         "any",
               "force_equip_allowed": true,
-              "model":               "models/cosmetic_model.bbmodel",
+              "model":               "models/back/cosmetic_model.bbmodel",
               "scale":               [1.0, 1.0, 1.0],
               "offset":              [0.0, 0.0, 0.0],
               "rotation":            [180.0, 0.0, 0.0]
@@ -112,7 +172,7 @@ public final class CosmeticManager {
 
               model            Path to the .bbmodel file, relative to the
                                config/manas_cosmetics/ folder.
-                               Example: "models/angel_wings.bbmodel"
+                               Example: "models/back/angel_wings.bbmodel"
 
             Optional Fields
             ───────────────
@@ -244,38 +304,36 @@ public final class CosmeticManager {
             Example Configurations
             ──────────────────────────────────────────────────────────────────────
 
-            Basic Wings
-            ───────────
+            Basic Wings (models/back/angel_wings.bbmodel)
+            ───────────────────────────────────────────
             {
               "id":           "manas_cosmetics:angel_wings",
               "display_name": "Angel Wings",
               "slot":         "back",
-              "weapon_type":  "any",
-              "model":        "models/angel_wings.bbmodel",
+              "model":        "models/back/angel_wings.bbmodel",
               "scale":        [0.7, 0.7, 0.7],
               "offset":       [0.0, 0.2, -0.15]
             }
 
-            Weapon-restricted Accessory
-            ───────────────────────────
+            Sword Weapon Overlay (models/weapon/sword/icicle_blade.bbmodel)
+            ───────────────────────────────────────────────────────────────
             {
-              "id":           "manas_cosmetics:magic_aura",
-              "display_name": "Magic Aura",
-              "slot":         "chestplate",
-              "weapon_type":  "magic_staff",
-              "model":        "models/magic_aura.bbmodel",
-              "scale":        [0.5, 0.5, 0.5],
-              "offset":       [0.0, 0.1, 0.0]
+              "id":           "manas_cosmetics:icicle_blade",
+              "display_name": "Icicle Blade",
+              "slot":         "weapon",
+              "weapon_type":  "sword",
+              "model":        "models/weapon/sword/icicle_blade.bbmodel",
+              "scale":        [1.0, 1.0, 1.0],
+              "offset":       [0.0, 0.0, 0.0]
             }
 
-            Floating Hat
-            ────────────
+            Floating Hat (models/above_head/wizard_hat.bbmodel)
+            ─────────────────────────────────────────────────
             {
               "id":           "manas_cosmetics:wizard_hat",
               "display_name": "Wizard Hat",
               "slot":         "above_head",
-              "weapon_type":  "any",
-              "model":        "models/wizard_hat.bbmodel",
+              "model":        "models/above_head/wizard_hat.bbmodel",
               "scale":        [1.0, 1.0, 1.0],
               "offset":       [0.0, 0.9, 0.0]
             }
@@ -309,22 +367,36 @@ public final class CosmeticManager {
             ──────────────────────────────────────────────────────────────────────
 
               config/manas_cosmetics/
-                cosmetics/              ← place your .json definition files here
-                models/                 ← place your .bbmodel files here
-                README.txt              ← this file
+                cosmetics/              ← .json sidecar files (auto-generated or manual)
+                models/
+                  <slot>/               ← .bbmodel files for each slot
+                  weapon/
+                    <weapon_type>/      ← .bbmodel files for each weapon type
+                README.txt              ← this file (auto-updated on startup)
 
             Naming tips:
-              - Use descriptive, lowercase file names, e.g. angel_wings.json
+              - Use descriptive, lowercase file names, e.g. angel_wings.bbmodel
               - The cosmetic "id" field must be unique across all loaded cosmetics.
-              - Matching the file name to the id suffix keeps things organised.
+              - If two models in different slot folders share the same filename, the
+                second one will be skipped during generate — use distinct names.
 
             ──────────────────────────────────────────────────────────────────────
-            Reload Command
+            Commands
             ──────────────────────────────────────────────────────────────────────
 
-            Use /manas_cosmetics reload to reload all cosmetic configurations
-            without restarting the server. Any .json files added, edited, or
-            removed since the last reload will be picked up immediately.
+              /manas_cosmetics generate   (OP) Scan models/ subfolders and create
+                                          .json sidecars for any .bbmodel files that
+                                          don't already have one, then auto-reload.
+
+              /manas_cosmetics reload     (OP) Reload all .json files in cosmetics/
+                                          without restarting the server.
+
+              /manas_cosmetics list       (OP) List all currently loaded cosmetics.
+
+              /manas_cosmetics give <player> <id>
+                                          (OP) Equip a cosmetic on a player.
+
+              /manas_cosmetics wardrobe   Open the wardrobe GUI (any player).
             """;
         try {
             Files.writeString(readme, content, StandardCharsets.UTF_8);
@@ -374,6 +446,136 @@ public final class CosmeticManager {
         } catch (Exception e) {
             LOGGER.error("[manas_cosmetics] Failed to load sidecar: {}", sidecarPath, e);
         }
+    }
+
+    // ── Sidecar Generation ─────────────────────────────────────────────────────
+
+    /**
+     * Walks every slot subfolder under {@code models/} and creates a {@code .json}
+     * sidecar in {@code cosmetics/} for each {@code .bbmodel} file that does not
+     * already have one.
+     *
+     * <p>Expected directory layout:</p>
+     * <pre>
+     *   models/&lt;slot&gt;/&lt;name&gt;.bbmodel
+     *   models/weapon/&lt;weapon_type&gt;/&lt;name&gt;.bbmodel
+     * </pre>
+     *
+     * <p>Generated fields:</p>
+     * <ul>
+     *   <li>{@code id}           – {@code manas_cosmetics:<name>}</li>
+     *   <li>{@code display_name} – title-cased from the filename (underscores → spaces)</li>
+     *   <li>{@code slot}         – taken from the first path segment under {@code models/}</li>
+     *   <li>{@code weapon_type}  – taken from the second segment when the slot is {@code weapon}</li>
+     *   <li>{@code model}        – relative path from {@code config/manas_cosmetics/}</li>
+     *   <li>Defaults: {@code scale [1,1,1]}, {@code offset [0,0,0]}, {@code rotation [180,0,0]}</li>
+     * </ul>
+     *
+     * @return number of new sidecar files written
+     */
+    public int generateSidecars() {
+        if (configRoot == null) return 0;
+
+        Path modelsRoot   = configRoot.resolve("models");
+        Path cosmeticsDir = configRoot.resolve("cosmetics");
+        int  generated    = 0;
+
+        try (Stream<Path> walk = Files.walk(modelsRoot)) {
+            List<Path> bbmodels = walk
+                .filter(p -> p.toString().endsWith(".bbmodel"))
+                .toList();
+
+            for (Path bbmodelPath : bbmodels) {
+                Path relToModels = modelsRoot.relativize(bbmodelPath);
+                int  nameCount   = relToModels.getNameCount();
+
+                // Must be at least slot/name.bbmodel (2 segments)
+                if (nameCount < 2) {
+                    LOGGER.warn("[manas_cosmetics] Skipping model not in a slot subfolder: {}", bbmodelPath);
+                    continue;
+                }
+
+                String slotId = relToModels.getName(0).toString();
+
+                Optional<CosmeticSlot> slotOpt = CosmeticSlot.fromId(slotId);
+                if (slotOpt.isEmpty()) {
+                    LOGGER.warn("[manas_cosmetics] Skipping model in unknown slot folder '{}': {}", slotId, bbmodelPath);
+                    continue;
+                }
+                CosmeticSlot slot = slotOpt.get();
+
+                // Weapon slot requires a weapon_type subfolder (3 segments)
+                WeaponType weaponType = WeaponType.ANY;
+                if (slot == CosmeticSlot.WEAPON) {
+                    if (nameCount < 3) {
+                        LOGGER.warn("[manas_cosmetics] Weapon model must be inside a weapon-type subfolder, skipping: {}", bbmodelPath);
+                        continue;
+                    }
+                    String weaponTypeId = relToModels.getName(1).toString();
+                    weaponType = WeaponType.fromId(weaponTypeId);
+                }
+
+                // Derive cosmetic name from the filename (without .bbmodel)
+                String fileName = relToModels.getFileName().toString();
+                String name     = fileName.substring(0, fileName.length() - ".bbmodel".length());
+
+                // Skip if a sidecar already exists — preserves manual edits.
+                // If two models in different slot folders share the same filename,
+                // the first one processed wins; staff should use distinct names.
+                Path sidecarPath = cosmeticsDir.resolve(name + ".json");
+                if (Files.exists(sidecarPath)) {
+                    continue;
+                }
+
+                // Build the model path relative to configRoot
+                String modelRelPath = configRoot.relativize(bbmodelPath).toString().replace('\\', '/');
+
+                String id          = "manas_cosmetics:" + name;
+                String displayName = toDisplayName(name);
+
+                String json = buildSidecarJson(id, displayName, slot, weaponType, modelRelPath);
+                Files.writeString(sidecarPath, json, StandardCharsets.UTF_8);
+                LOGGER.info("[manas_cosmetics] Generated sidecar: {}", sidecarPath.getFileName());
+                generated++;
+            }
+        } catch (IOException e) {
+            LOGGER.error("[manas_cosmetics] Failed during sidecar generation", e);
+        }
+
+        return generated;
+    }
+
+    /** Converts a snake_case filename stem to a title-cased display name. */
+    private static String toDisplayName(String name) {
+        String[] parts = name.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part.isEmpty()) continue;
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(Character.toUpperCase(part.charAt(0)));
+            if (part.length() > 1) sb.append(part.substring(1));
+        }
+        return sb.toString();
+    }
+
+    private static String buildSidecarJson(
+        String id, String displayName, CosmeticSlot slot, WeaponType weaponType, String modelPath
+    ) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{\n");
+        sb.append("  \"id\":                  \"").append(id).append("\",\n");
+        sb.append("  \"display_name\":        \"").append(displayName).append("\",\n");
+        sb.append("  \"slot\":                \"").append(slot.getId()).append("\",\n");
+        if (slot == CosmeticSlot.WEAPON && weaponType != WeaponType.ANY) {
+            sb.append("  \"weapon_type\":         \"").append(weaponType.getId()).append("\",\n");
+        }
+        sb.append("  \"force_equip_allowed\": true,\n");
+        sb.append("  \"model\":               \"").append(modelPath).append("\",\n");
+        sb.append("  \"scale\":               [1.0, 1.0, 1.0],\n");
+        sb.append("  \"offset\":              [0.0, 0.0, 0.0],\n");
+        sb.append("  \"rotation\":            [180.0, 0.0, 0.0]\n");
+        sb.append("}");
+        return sb.toString();
     }
 
     // ── Query ──────────────────────────────────────────────────────────────────

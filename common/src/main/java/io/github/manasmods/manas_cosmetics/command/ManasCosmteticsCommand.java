@@ -58,6 +58,10 @@ public final class ManasCosmteticsCommand {
                     .requires(src -> src.hasPermission(2))
                     .executes(ManasCosmteticsCommand::executeList)
                 )
+                .then(literal("generate")
+                    .requires(src -> src.hasPermission(2))
+                    .executes(ManasCosmteticsCommand::executeGenerate)
+                )
                 .then(literal("reload")
                     .requires(src -> src.hasPermission(2))
                     .executes(ManasCosmteticsCommand::executeReload)
@@ -113,6 +117,31 @@ public final class ManasCosmteticsCommand {
             );
         }
         return defs.size();
+    }
+
+    // ── /manas_cosmetics generate ─────────────────────────────────────────────
+
+    private static int executeGenerate(CommandContext<CommandSourceStack> ctx) {
+        int generated = CosmeticManager.get().generateSidecars();
+
+        // Always reload so any freshly written sidecars are live immediately.
+        CosmeticManager.get().reload();
+        int loaded = CosmeticManager.get().getAllDefinitions().size();
+
+        if (ctx.getSource().getServer() != null) {
+            io.github.manasmods.manas_cosmetics.ManasCosmetics.broadcastRegistryToAll(ctx.getSource().getServer());
+        }
+
+        final int finalGenerated = generated;
+        final int finalLoaded    = loaded;
+        ctx.getSource().sendSuccess(
+            () -> Component.literal(
+                "[manas_cosmetics] Generated " + finalGenerated + " sidecar(s). "
+                + finalLoaded + " cosmetic(s) now loaded."
+            ),
+            true
+        );
+        return generated;
     }
 
     // ── /manas_cosmetics reload ────────────────────────────────────────────────
