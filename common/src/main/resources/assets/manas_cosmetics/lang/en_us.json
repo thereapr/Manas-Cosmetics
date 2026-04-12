@@ -1,0 +1,13 @@
+{
+  "gui.manas_cosmetics.wardrobe":      "Wardrobe",
+  "gui.manas_cosmetics.equip":         "Equip",
+  "gui.manas_cosmetics.unequip":       "Unequip",
+  "gui.manas_cosmetics.force_equip":   "Force Equip",
+  "gui.manas_cosmetics.save_preset":   "Save",
+  "gui.manas_cosmetics.load_preset":   "Load",
+  "gui.manas_cosmetics.delete_preset": "Delete",
+  "gui.manas_cosmetics.preset_name":   "Preset name…",
+
+  "key.manas_cosmetics.open_wardrobe": "Open Wardrobe",
+  "key.categories.manas_cosmetics":    "Manas Cosmetics"
+}
