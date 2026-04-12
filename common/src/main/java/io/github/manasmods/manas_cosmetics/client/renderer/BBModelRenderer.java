@@ -7,7 +7,6 @@ import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.ResourceLocation;
-import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 
 import java.util.List;
@@ -147,12 +146,12 @@ public final class BBModelRenderer {
         // Vertex order: position → color → uv0 (texture) → uv1 (overlay) → uv2 (light) → normal
         // setOverlay(NO_OVERLAY) is required; without it the overlay defaults to 0 (the hurt/red
         // position in the overlay texture), producing a red tint over the whole cosmetic.
-        final Matrix4f pose = poseStack.last().pose();
-        final Matrix3f normal = poseStack.last().normal();
-        buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
-        buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
-        buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
-        buf.addVertex(pose, x3, y3, z3).setColor(255,255,255,255).setUv(u0,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(normal,nx,ny,nz);
+        final PoseStack.Pose entry = poseStack.last();
+        final Matrix4f pose = entry.pose();
+        buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
+        buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
+        buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
+        buf.addVertex(pose, x3, y3, z3).setColor(255,255,255,255).setUv(u0,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
     }
 
     // ── Animation interpolation ────────────────────────────────────────────────
