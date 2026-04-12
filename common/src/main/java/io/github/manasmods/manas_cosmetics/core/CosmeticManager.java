@@ -83,8 +83,23 @@ public final class CosmeticManager {
               "force_equip_allowed": true,
               "model":               "models/icicle_wings.bbmodel",
               "scale":               [1.0, 1.0, 1.0],
-              "offset":              [0.0, 0.0, 0.0]
+              "offset":              [0.0, 0.0, 0.0],
+              "rotation":            [180.0, 0.0, 0.0]
             }
+
+            Field descriptions:
+              id                   Namespaced ID, e.g. "manas_cosmetics:my_cosmetic"
+              display_name         Name shown in the wardrobe GUI
+              slot                 Attachment point on the player (see Valid slots below)
+              weapon_type          Restrict visibility to a weapon class (default: "any")
+              force_equip_allowed  Allow players to bypass weapon_type check (default: false)
+              model                Path to the .bbmodel file relative to this config folder
+              scale                [x, y, z] multiplicative scale  (default: [1.0, 1.0, 1.0])
+              offset               [x, y, z] position offset in BBModel units  (default: [0.0, 0.0, 0.0])
+              rotation             [x, y, z] rotation in degrees applied after scale  (default: [180.0, 0.0, 0.0])
+                                   The default 180° X rotation is required for most Blockbench exports
+                                   which face downward by default. Override only if your model is
+                                   already oriented correctly.
 
             Valid slots: helmet, above_head, chestplate, back, front, legs, boots,
                          orbit, pet, weapon, shield, grimoire, magic_staff
