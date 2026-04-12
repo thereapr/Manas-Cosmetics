@@ -144,6 +144,7 @@ public final class SyncCosmeticRegistryPayload {
     }
 
     private static List<BBModelData.Bone> deserialiseBones(JsonArray arr) {
+        if (arr == null) return new ArrayList<>();
         List<BBModelData.Bone> list = new ArrayList<>();
         for (var el : arr) {
             JsonObject o = el.getAsJsonObject();
@@ -151,8 +152,8 @@ public final class SyncCosmeticRegistryPayload {
                 o.get("name").getAsString(),
                 readVec3(o.getAsJsonArray("pivot")),
                 readVec3(o.getAsJsonArray("rot")),
-                deserialiseCubes(o.getAsJsonArray("cubes")),
-                deserialiseBones(o.getAsJsonArray("children"))
+                deserialiseCubes(o.has("cubes") ? o.getAsJsonArray("cubes") : null),
+                deserialiseBones(o.has("children") ? o.getAsJsonArray("children") : null)
             ));
         }
         return list;
@@ -183,15 +184,22 @@ public final class SyncCosmeticRegistryPayload {
     }
 
     private static List<BBModelData.Cube> deserialiseCubes(JsonArray arr) {
+        if (arr == null) return new ArrayList<>();
         List<BBModelData.Cube> list = new ArrayList<>();
         for (var el : arr) {
             JsonObject o = el.getAsJsonObject();
             java.util.Map<String, BBModelData.Face> faces = new java.util.LinkedHashMap<>();
-            o.getAsJsonObject("faces").entrySet().forEach(e -> {
-                JsonObject f = e.getValue().getAsJsonObject();
-                float[] uv = readVec4(f.getAsJsonArray("uv"));
-                faces.put(e.getKey(), new BBModelData.Face(uv, f.get("tex").getAsInt()));
-            });
+            JsonObject facesObj = o.has("faces") ? o.getAsJsonObject("faces") : null;
+            if (facesObj != null) {
+                facesObj.entrySet().forEach(e -> {
+                    JsonObject f = e.getValue().getAsJsonObject();
+                    JsonArray uvArr = f.has("uv") ? f.getAsJsonArray("uv") : null;
+                    if (uvArr != null && uvArr.size() >= 4) {
+                        float[] uv = readVec4(uvArr);
+                        faces.put(e.getKey(), new BBModelData.Face(uv, f.get("tex").getAsInt()));
+                    }
+                });
+            }
             list.add(new BBModelData.Cube(
                 o.get("name").getAsString(),
                 readVec3(o.getAsJsonArray("from")),
@@ -225,14 +233,17 @@ public final class SyncCosmeticRegistryPayload {
 
     private static BBModelData.Animation deserialiseAnimation(JsonObject o) {
         java.util.Map<String, BBModelData.BoneAnimation> bones = new java.util.LinkedHashMap<>();
-        o.getAsJsonObject("bones").entrySet().forEach(e -> {
-            JsonObject b = e.getValue().getAsJsonObject();
-            bones.put(e.getKey(), new BBModelData.BoneAnimation(
-                deserialiseKeyframes(b.getAsJsonArray("rot")),
-                deserialiseKeyframes(b.getAsJsonArray("pos")),
-                deserialiseKeyframes(b.getAsJsonArray("scale"))
-            ));
-        });
+        JsonObject bonesObj = o.has("bones") ? o.getAsJsonObject("bones") : null;
+        if (bonesObj != null) {
+            bonesObj.entrySet().forEach(e -> {
+                JsonObject b = e.getValue().getAsJsonObject();
+                bones.put(e.getKey(), new BBModelData.BoneAnimation(
+                    deserialiseKeyframes(b.has("rot")   ? b.getAsJsonArray("rot")   : null),
+                    deserialiseKeyframes(b.has("pos")   ? b.getAsJsonArray("pos")   : null),
+                    deserialiseKeyframes(b.has("scale") ? b.getAsJsonArray("scale") : null)
+                ));
+            });
+        }
         return new BBModelData.Animation(
             o.get("name").getAsString(),
             o.get("loop").getAsBoolean(),
@@ -253,6 +264,7 @@ public final class SyncCosmeticRegistryPayload {
     }
 
     private static List<BBModelData.Keyframe> deserialiseKeyframes(JsonArray arr) {
+        if (arr == null) return new ArrayList<>();
         List<BBModelData.Keyframe> list = new ArrayList<>();
         for (var el : arr) {
             JsonObject o = el.getAsJsonObject();
