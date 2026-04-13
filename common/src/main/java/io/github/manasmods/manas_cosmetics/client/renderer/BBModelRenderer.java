@@ -35,7 +35,11 @@ public final class BBModelRenderer {
                               ResourceLocation texture,
                               float animTime) {
 
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucentCull(texture));
+        // entityCutoutNoCull: renders in the opaque pass (no translucency-sorting artifacts,
+        // no Z-fighting with the player's translucent skin layer), supports cutout alpha
+        // (transparent pixels discarded), and draws both sides of every face (no culling)
+        // so models authored without a specific winding convention always appear solid.
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityCutoutNoCull(texture));
 
         for (BBModelData.Bone bone : model.bones()) {
             renderBone(poseStack, consumer, packedLight, model, bone, animTime);
