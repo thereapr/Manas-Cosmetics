@@ -3,9 +3,17 @@ package io.github.manasmods.manas_cosmetics.data;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.Tag;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 
 /**
@@ -14,11 +22,12 @@ import java.util.*;
  *  - Which weapon slots have Force Equip enabled
  *  - Up to {@value CosmeticPreset#MAX_PRESETS} named presets
  *
- * Stored as NBT on the player entity via Architectury's player data events
- * (SAVE_DATA / LOAD_DATA). Synced to client after every mutation.
+ * Persisted to {@code config/manas_cosmetics/playerdata/<uuid>.dat} using
+ * compressed NBT (written on quit, loaded on join).
  */
 public final class PlayerCosmeticData {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger("manas_cosmetics");
     private static final String NBT_KEY = "manas_cosmetics:data";
 
     private final Map<CosmeticSlot, String> equipped = new EnumMap<>(CosmeticSlot.class);
@@ -169,16 +178,54 @@ public final class PlayerCosmeticData {
         return SERVER_CACHE.computeIfAbsent(player.getUUID(), k -> new PlayerCosmeticData());
     }
 
-    public static void onPlayerSave(ServerPlayer player, CompoundTag tag) {
-        of(player).save(tag);
+    // ── File-based persistence ─────────────────────────────────────────────────
+
+    /**
+     * Loads the player's cosmetic data from
+     * {@code config/manas_cosmetics/playerdata/<uuid>.dat} into the server cache.
+     * Called on PLAYER_JOIN before syncing state to clients.
+     */
+    public static void loadFromFile(MinecraftServer server, UUID uuid) {
+        Path file = dataFile(server, uuid);
+        PlayerCosmeticData data = SERVER_CACHE.computeIfAbsent(uuid, k -> new PlayerCosmeticData());
+        if (!Files.exists(file)) return;
+        try {
+            CompoundTag tag = NbtIo.readCompressed(file, NbtAccounter.unlimitedHeap());
+            data.load(tag);
+        } catch (IOException e) {
+            LOGGER.error("[manas_cosmetics] Failed to load player data for {}", uuid, e);
+        }
     }
 
-    public static void onPlayerLoad(ServerPlayer player, CompoundTag tag) {
-        PlayerCosmeticData data = SERVER_CACHE.computeIfAbsent(player.getUUID(), k -> new PlayerCosmeticData());
-        data.load(tag);
+    /**
+     * Saves the player's current cosmetic data to
+     * {@code config/manas_cosmetics/playerdata/<uuid>.dat}.
+     * Called on PLAYER_QUIT before the cache entry is removed.
+     */
+    public static void saveToFile(MinecraftServer server, UUID uuid) {
+        PlayerCosmeticData data = SERVER_CACHE.get(uuid);
+        if (data == null) return;
+        Path file = dataFile(server, uuid);
+        try {
+            Files.createDirectories(file.getParent());
+            CompoundTag tag = new CompoundTag();
+            data.save(tag);
+            NbtIo.writeCompressed(tag, file);
+        } catch (IOException e) {
+            LOGGER.error("[manas_cosmetics] Failed to save player data for {}", uuid, e);
+        }
     }
 
-    public static void onPlayerQuit(ServerPlayer player) {
+    public static void onPlayerQuit(MinecraftServer server, ServerPlayer player) {
+        saveToFile(server, player.getUUID());
         SERVER_CACHE.remove(player.getUUID());
+    }
+
+    private static Path dataFile(MinecraftServer server, UUID uuid) {
+        return server.getServerDirectory()
+            .resolve("config")
+            .resolve("manas_cosmetics")
+            .resolve("playerdata")
+            .resolve(uuid + ".dat");
     }
 }
