@@ -18,12 +18,13 @@ public final class CosmeticsNetworking {
     public static void registerCommon() {
         // C2S: client signals it wants to open the wardrobe (server validates & responds)
         NetworkManager.registerReceiver(
-            WardrobePayloads.OpenWardrobePayload.TYPE,
-            WardrobePayloads.OpenWardrobePayload.STREAM_CODEC,
-            (payload, context) -> {
-                // No payload needed – just trigger the server-side wardrobe open logic.
-                // The actual GUI opens on the client side after login sync.
-            }
+                NetworkManager.Side.C2S,
+                WardrobePayloads.OpenWardrobePayload.TYPE,
+                WardrobePayloads.OpenWardrobePayload.STREAM_CODEC,
+                (payload, context) -> {
+                    // No payload needed – just trigger the server-side wardrobe open logic.
+                    // The actual GUI opens on the client side after login sync.
+                }
         );
     }
 
@@ -36,8 +37,8 @@ public final class CosmeticsNetworking {
 
         // Send to all other players who can see this player
         player.serverLevel().getChunkSource().broadcastAndSend(
-            player,
-            NetworkManager.toPacket(NetworkManager.Side.S2C, payload)
+                player,
+                NetworkManager.toPacket(NetworkManager.Side.S2C, payload, player.registryAccess())
         );
     }
 

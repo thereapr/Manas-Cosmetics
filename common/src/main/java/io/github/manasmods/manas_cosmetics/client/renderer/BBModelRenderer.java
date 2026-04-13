@@ -109,7 +109,7 @@ public final class BBModelRenderer {
         float y1 = cube.to()[1]   * UNITS_TO_BLOCKS;
         float z1 = cube.to()[2]   * UNITS_TO_BLOCKS;
 
-        
+
         for (Map.Entry<String, BBModelData.Face> entry : cube.faces().entrySet()) {
             BBModelData.Face face = entry.getValue();
             float u0 = face.uv()[0] / texW;
@@ -119,17 +119,17 @@ public final class BBModelRenderer {
 
             switch (entry.getKey()) {
                 case "north" -> quad(consumer, ps, light,
-                    x1,y1,z0,  x0,y1,z0,  x0,y0,z0,  x1,y0,z0,  u0,v0,u1,v1,  0,0,-1);
+                        x1,y1,z0,  x0,y1,z0,  x0,y0,z0,  x1,y0,z0,  u0,v0,u1,v1,  0,0,-1);
                 case "south" -> quad(consumer, ps, light,
-                    x0,y1,z1,  x1,y1,z1,  x1,y0,z1,  x0,y0,z1,  u0,v0,u1,v1,  0,0,1);
+                        x0,y1,z1,  x1,y1,z1,  x1,y0,z1,  x0,y0,z1,  u0,v0,u1,v1,  0,0,1);
                 case "west"  -> quad(consumer, ps, light,
-                    x0,y1,z0,  x0,y1,z1,  x0,y0,z1,  x0,y0,z0,  u0,v0,u1,v1, -1,0,0);
+                        x0,y1,z0,  x0,y1,z1,  x0,y0,z1,  x0,y0,z0,  u0,v0,u1,v1, -1,0,0);
                 case "east"  -> quad(consumer, ps, light,
-                    x1,y1,z1,  x1,y1,z0,  x1,y0,z0,  x1,y0,z1,  u0,v0,u1,v1,  1,0,0);
+                        x1,y1,z1,  x1,y1,z0,  x1,y0,z0,  x1,y0,z1,  u0,v0,u1,v1,  1,0,0);
                 case "up"    -> quad(consumer, ps, light,
-                    x0,y1,z0,  x1,y1,z0,  x1,y1,z1,  x0,y1,z1,  u0,v0,u1,v1,  0,1,0);
+                        x0,y1,z0,  x1,y1,z0,  x1,y1,z1,  x0,y1,z1,  u0,v0,u1,v1,  0,1,0);
                 case "down"  -> quad(consumer, ps, light,
-                    x0,y0,z1,  x1,y0,z1,  x1,y0,z0,  x0,y0,z0,  u0,v0,u1,v1,  0,-1,0);
+                        x0,y0,z1,  x1,y0,z1,  x1,y0,z0,  x0,y0,z0,  u0,v0,u1,v1,  0,-1,0);
             }
         }
 
@@ -137,12 +137,12 @@ public final class BBModelRenderer {
     }
 
     private static void quad(VertexConsumer buf, PoseStack poseStack, int light,
-                              float x0, float y0, float z0,
-                              float x1, float y1, float z1,
-                              float x2, float y2, float z2,
-                              float x3, float y3, float z3,
-                              float u0, float v0, float u1, float v1,
-                              float nx, float ny, float nz) {
+                             float x0, float y0, float z0,
+                             float x1, float y1, float z1,
+                             float x2, float y2, float z2,
+                             float x3, float y3, float z3,
+                             float u0, float v0, float u1, float v1,
+                             float nx, float ny, float nz) {
         // Vertex order: position → color → uv0 (texture) → uv1 (overlay) → uv2 (light) → normal
         // setOverlay(NO_OVERLAY) is required; without it the overlay defaults to 0 (the hurt/red
         // position in the overlay texture), producing a red tint over the whole cosmetic.
@@ -199,9 +199,9 @@ public final class BBModelRenderer {
 
     private static float[] lerp(float[] a, float[] b, float t) {
         return new float[]{
-            a[0] + (b[0] - a[0]) * t,
-            a[1] + (b[1] - a[1]) * t,
-            a[2] + (b[2] - a[2]) * t
+                a[0] + (b[0] - a[0]) * t,
+                a[1] + (b[1] - a[1]) * t,
+                a[2] + (b[2] - a[2]) * t
         };
     }
 }

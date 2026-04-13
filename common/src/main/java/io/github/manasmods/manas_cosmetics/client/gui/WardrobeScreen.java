@@ -115,18 +115,18 @@ public class WardrobeScreen extends Screen {
 
         // Left / main area buttons
         addRenderableWidget(Button.builder(
-            Component.translatable("gui.manas_cosmetics.equip"),
-            btn -> equipSelected()
+                Component.translatable("gui.manas_cosmetics.equip"),
+                btn -> equipSelected()
         ).bounds(guiLeft + SIDEBAR_W + 4, bY1, 56, 20).build());
 
         addRenderableWidget(Button.builder(
-            Component.translatable("gui.manas_cosmetics.unequip"),
-            btn -> unequipCurrent()
+                Component.translatable("gui.manas_cosmetics.unequip"),
+                btn -> unequipCurrent()
         ).bounds(guiLeft + SIDEBAR_W + 64, bY1, 66, 20).build());
 
         addRenderableWidget(Button.builder(
-            Component.translatable("gui.manas_cosmetics.force_equip"),
-            btn -> toggleForceEquip()
+                Component.translatable("gui.manas_cosmetics.force_equip"),
+                btn -> toggleForceEquip()
         ).bounds(guiLeft + SIDEBAR_W + 4, bY2, 90, 20).build());
 
         // Right panel buttons
@@ -134,8 +134,8 @@ public class WardrobeScreen extends Screen {
         int rbW = RIGHT_W - 6;
 
         presetNameBox = new EditBox(
-            font, rx, bY1, rbW, 16,
-            Component.translatable("gui.manas_cosmetics.preset_name")
+                font, rx, bY1, rbW, 16,
+                Component.translatable("gui.manas_cosmetics.preset_name")
         );
         presetNameBox.setMaxLength(24);
         presetNameBox.setValue("Preset " + (ClientCosmeticState.get().getPresets().size() + 1));
@@ -143,18 +143,18 @@ public class WardrobeScreen extends Screen {
 
         int halfW = (rbW - 2) / 2;
         addRenderableWidget(Button.builder(
-            Component.translatable("gui.manas_cosmetics.save_preset"),
-            btn -> savePreset()
+                Component.translatable("gui.manas_cosmetics.save_preset"),
+                btn -> savePreset()
         ).bounds(rx, bY2, halfW, 20).build());
 
         addRenderableWidget(Button.builder(
-            Component.translatable("gui.manas_cosmetics.load_preset"),
-            btn -> loadPreset()
+                Component.translatable("gui.manas_cosmetics.load_preset"),
+                btn -> loadPreset()
         ).bounds(rx + halfW + 2, bY2, halfW, 20).build());
 
         addRenderableWidget(Button.builder(
-            Component.translatable("gui.manas_cosmetics.delete_preset"),
-            btn -> deletePreset()
+                Component.translatable("gui.manas_cosmetics.delete_preset"),
+                btn -> deletePreset()
         ).bounds(rx, bY2 + 24, rbW, 20).build());
     }
 
@@ -223,8 +223,8 @@ public class WardrobeScreen extends Screen {
 
         // Slot header
         g.drawString(font,
-            activeSlot.getId().replace('_', ' ').toUpperCase(),
-            listX + 4, listY + 2, COL_TEXT_DIM, false);
+                activeSlot.getId().replace('_', ' ').toUpperCase(),
+                listX + 4, listY + 2, COL_TEXT_DIM, false);
 
         int itemY0 = listY + ROW_H + 2;
         int itemH  = listH - ROW_H - 2;
@@ -244,9 +244,9 @@ public class WardrobeScreen extends Screen {
                 g.fill(listX, rowY, listX + LIST_W, rowY + ROW_H, COL_HOV);
             }
             g.drawString(font,
-                (eq ? "\u2714 " : "  ") + def.displayName(),
-                listX + 4, rowY + 2,
-                eq ? COL_EQUIPPED : COL_TEXT, false);
+                    (eq ? "\u2714 " : "  ") + def.displayName(),
+                    listX + 4, rowY + 2,
+                    eq ? COL_EQUIPPED : COL_TEXT, false);
         }
         g.disableScissor();
 
@@ -267,12 +267,12 @@ public class WardrobeScreen extends Screen {
         if (mc.player != null) {
             int scale = 38;
             InventoryScreen.renderEntityInInventoryFollowsMouse(
-                g,
-                rpX + 1, prevY + ROW_H,
-                rpX + rpW - 1, prevY + PREVIEW_H - 1,
-                scale, 0f,
-                mouseX, mouseY,
-                mc.player
+                    g,
+                    rpX + 1, prevY + ROW_H,
+                    rpX + rpW - 1, prevY + PREVIEW_H - 1,
+                    scale, 0f,
+                    mouseX, mouseY,
+                    mc.player
             );
         }
 
@@ -290,7 +290,7 @@ public class WardrobeScreen extends Screen {
         int plItemH  = plH - ROW_H - 2;
         g.enableScissor(rpX, plItemY0, rpX + rpW, plItemY0 + plItemH);
         List<io.github.manasmods.manas_cosmetics.data.CosmeticPreset> presets =
-            ClientCosmeticState.get().getPresets();
+                ClientCosmeticState.get().getPresets();
         int plVisRows = plItemH / ROW_H;
         for (int i = 0; i < presets.size() && i < plVisRows; i++) {
             int rowY = plItemY0 + i * ROW_H;
@@ -366,8 +366,8 @@ public class WardrobeScreen extends Screen {
         if (mouseX >= sideX && mouseX < sideX + SIDEBAR_W
                 && mouseY >= contentY && mouseY < contentY + CONTENT_H) {
             slotScrollOffset = Math.max(0, Math.min(
-                SLOT_TABS.size() - CONTENT_H / ROW_H,
-                slotScrollOffset - (int) scrollY));
+                    SLOT_TABS.size() - CONTENT_H / ROW_H,
+                    slotScrollOffset - (int) scrollY));
         } else if (mouseX >= listX && mouseX < listX + LIST_W
                 && mouseY >= contentY && mouseY < contentY + CONTENT_H) {
             listScrollOffset = Math.max(0, listScrollOffset - (int) scrollY);
@@ -429,51 +429,34 @@ public class WardrobeScreen extends Screen {
 
     // ── Network ────────────────────────────────────────────────────────────────
 
-    private static RegistryFriendlyByteBuf createBuf() {
-        Minecraft mc = Minecraft.getInstance();
-        RegistryAccess access = mc.getConnection() != null
-            ? mc.getConnection().registryAccess()
-            : RegistryAccess.EMPTY;
-        return new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), access);
-    }
-
     private void sendEquipPacket(CosmeticSlot slot, String id, boolean forceEquip) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId()); buf.writeUtf(id); buf.writeBoolean(forceEquip);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","equip_c2s"), buf);
+                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipPayload(slot.getId(), id, forceEquip));
     }
 
     private void sendUnequipPacket(CosmeticSlot slot) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId());
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","unequip_c2s"), buf);
+                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.UnequipPayload(slot.getId()));
     }
 
     private void sendForceEquipPacket(CosmeticSlot slot, boolean value) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId()); buf.writeBoolean(value);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","force_equip_c2s"), buf);
+                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.ForceEquipPayload(slot.getId(), value));
     }
 
     private void sendPresetSavePacket(String name) {
-        RegistryFriendlyByteBuf buf = createBuf(); buf.writeUtf(name);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_save_c2s"), buf);
+                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetSavePayload(name));
     }
 
     private void sendPresetLoadPacket(int index) {
-        RegistryFriendlyByteBuf buf = createBuf(); buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_load_c2s"), buf);
+                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetLoadPayload(index));
     }
 
     private void sendPresetDeletePacket(int index) {
-        RegistryFriendlyByteBuf buf = createBuf(); buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_delete_c2s"), buf);
+                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetDeletePayload(index));
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
