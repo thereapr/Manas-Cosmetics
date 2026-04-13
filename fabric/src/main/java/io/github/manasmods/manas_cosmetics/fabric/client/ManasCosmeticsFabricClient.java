@@ -27,6 +27,6 @@ public final class ManasCosmeticsFabricClient implements ClientModInitializer {
         );
 
         // Register the pet entity renderer so pet cosmetics are visible in the world
-        EntityRendererRegistry.register(EntityRegistry.PET_COSMETIC, PetCosmeticRenderer::new);
+        EntityRendererRegistry.register(EntityRegistry.PET_COSMETIC.get(), PetCosmeticRenderer::new);
     }
 }
