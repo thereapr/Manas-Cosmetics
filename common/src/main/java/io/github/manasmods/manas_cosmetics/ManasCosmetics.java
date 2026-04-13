@@ -42,17 +42,13 @@ public final class ManasCosmetics {
         // Server lifecycle — init CosmeticManager when server starts
         LifecycleEvent.SERVER_STARTED.register(server -> CosmeticManager.get().init(server));
 
-        // Player data: save / load / cleanup
-        PlayerEvent.SAVE_DATA.register((player, tag) -> {
-            if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerSave(sp, tag);
-        });
-        PlayerEvent.LOAD_DATA.register((player, tag) -> {
-            if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerLoad(sp, tag);
-        });
+        // Player data cleanup & file-based save on quit
+        // (PlayerEvent.SAVE_DATA / LOAD_DATA are absent in Architectury 13.x;
+        //  we use our own file-based persistence in playerdata/<uuid>.dat instead)
         PlayerEvent.PLAYER_QUIT.register(player -> {
             if (player instanceof ServerPlayer sp) {
                 PetManager.get().onPlayerQuit(sp);
-                PlayerCosmeticData.onPlayerQuit(sp);
+                PlayerCosmeticData.onPlayerQuit(sp.getServer(), sp);
             }
         });
 
@@ -63,6 +59,9 @@ public final class ManasCosmetics {
         //  4. Spawn the player's pet if they have one equipped
         PlayerEvent.PLAYER_JOIN.register(player -> {
             if (!(player instanceof ServerPlayer sp)) return;
+
+            // Load player's saved cosmetic data from disk before syncing
+            PlayerCosmeticData.loadFromFile(sp.getServer(), sp.getUUID());
 
             // Sync this player's state to everyone currently tracking them
             CosmeticsNetworking.syncToTrackers(sp);
