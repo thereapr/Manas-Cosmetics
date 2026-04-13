@@ -35,7 +35,7 @@ public final class BBModelRenderer {
                               ResourceLocation texture,
                               float animTime) {
 
-        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucent(texture));
+        VertexConsumer consumer = bufferSource.getBuffer(RenderType.entityTranslucentCull(texture));
 
         for (BBModelData.Bone bone : model.bones()) {
             renderBone(poseStack, consumer, packedLight, model, bone, animTime);
