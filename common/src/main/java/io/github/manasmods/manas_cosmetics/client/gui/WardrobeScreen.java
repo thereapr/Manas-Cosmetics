@@ -67,15 +67,32 @@ public class WardrobeScreen extends Screen {
     private static final int COL_TITLE     = 0xFF77CCFF;  // title
     private static final int COL_EQUIPPED  = 0xFF44FF88;  // equipped tick
 
-    // ── State ──────────────────────────────────────────────────────────────────
+    // ── Persistent GUI state (survives between openings in the same session) ───
+
+    private static int savedTabIndex      = 0;
+    private static int savedSlotScroll    = 0;
+    private static int savedListScroll    = 0;
+    private static int savedCosmeticIndex = -1;
+    private static int savedPresetIndex   = -1;
+
+    /** Called on client disconnect so stale state is not restored next session. */
+    public static void clearSavedState() {
+        savedTabIndex      = 0;
+        savedSlotScroll    = 0;
+        savedListScroll    = 0;
+        savedCosmeticIndex = -1;
+        savedPresetIndex   = -1;
+    }
+
+    // ── Instance state ─────────────────────────────────────────────────────────
 
     private final List<CosmeticSlot> SLOT_TABS = Arrays.asList(CosmeticSlot.values());
 
-    private int selectedTabIndex      = 0;
-    private int slotScrollOffset      = 0;   // sidebar scroll
-    private int listScrollOffset      = 0;   // cosmetic list scroll
-    private int selectedCosmeticIndex = -1;
-    private int selectedPresetIndex   = -1;
+    private int selectedTabIndex      = savedTabIndex;
+    private int slotScrollOffset      = savedSlotScroll;
+    private int listScrollOffset      = savedListScroll;
+    private int selectedCosmeticIndex = savedCosmeticIndex;
+    private int selectedPresetIndex   = savedPresetIndex;
 
     private int guiLeft, guiTop;
     private EditBox presetNameBox;
@@ -487,6 +504,7 @@ public class WardrobeScreen extends Screen {
             case FRONT       -> "Front";
             case LEGS        -> "Legs";
             case BOOTS       -> "Boots";
+            case EARS        -> "Ears";
             case ORBIT       -> "Orbit";
             case PET         -> "Pet";
             case WEAPON      -> "Weapon";
@@ -494,6 +512,16 @@ public class WardrobeScreen extends Screen {
             case GRIMOIRE    -> "Grimoire";
             case MAGIC_STAFF -> "Magic Staff";
         };
+    }
+
+    @Override
+    public void removed() {
+        // Persist state for next opening
+        savedTabIndex      = selectedTabIndex;
+        savedSlotScroll    = slotScrollOffset;
+        savedListScroll    = listScrollOffset;
+        savedCosmeticIndex = selectedCosmeticIndex;
+        savedPresetIndex   = selectedPresetIndex;
     }
 
     @Override

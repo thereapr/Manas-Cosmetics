@@ -11,6 +11,7 @@ public enum CosmeticSlot {
     FRONT("front"),
     LEGS("legs"),
     BOOTS("boots"),
+    EARS("ears"),
     ORBIT("orbit"),
     PET("pet"),
     WEAPON("weapon"),

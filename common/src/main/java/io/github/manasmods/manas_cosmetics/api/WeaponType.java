@@ -16,6 +16,9 @@ public enum WeaponType {
     SHIELD("shield"),
     GRIMOIRE("grimoire"),
     MAGIC_STAFF("magic_staff"),
+    PICKAXE("pickaxe"),
+    GAUNTLET("gauntlet"),
+    GREATSWORD("greatsword"),
     ANY("any");
 
     private final String id;

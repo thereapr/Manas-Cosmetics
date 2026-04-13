@@ -9,12 +9,14 @@ import io.github.manasmods.manas_cosmetics.client.ClientCosmeticState;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
 import net.minecraft.client.model.EntityModel;
 import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.geom.ModelPart;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.RenderLayerParent;
 import net.minecraft.client.renderer.entity.layers.RenderLayer;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
@@ -122,6 +124,14 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
                 }
                 ps.translate(0, 0.9, 0);
             }
+            case EARS -> {
+                // Attach to the head centre so the cosmetic rotates with head yaw/pitch.
+                // The bbmodel defines both ears symmetrically around the head centre.
+                if (parentModel instanceof HumanoidModel<?> humanoid) {
+                    humanoid.head.translateAndRotate(ps);
+                }
+                // No additional Y offset – ear models position themselves relative to head centre
+            }
             case CHESTPLATE  -> ps.translate(0,  0.1,   0);
             case BACK        -> ps.translate(0,  0.0,   0.125); // vanilla elytra anchor
             case FRONT       -> ps.translate(0,  0.1,  -0.2);
@@ -129,7 +139,7 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             case BOOTS       -> ps.translate(0, -0.7,   0);
             case ORBIT       -> applyOrbitTransform(ps, player, pt);
             case PET         -> {}  // pet entity handles its own position
-            case WEAPON, SHIELD, GRIMOIRE, MAGIC_STAFF -> applyHandTransform(ps, player);
+            case WEAPON, SHIELD, GRIMOIRE, MAGIC_STAFF -> applyHandTransform(ps, player, parentModel);
         }
     }
 
@@ -140,9 +150,22 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
         ps.translate(Math.sin(rad) * radius, 0.5, Math.cos(rad) * radius);
     }
 
-    private static void applyHandTransform(PoseStack ps, Player player) {
-        ps.translate(player.getMainArm() == net.minecraft.world.entity.HumanoidArm.RIGHT ? 0.3 : -0.3,
-                     -0.4, 0.1);
+    /**
+     * Positions the weapon overlay exactly where Minecraft's {@code ItemInHandLayer} renders
+     * the held item in third-person view, so the cosmetic overlays the actual weapon model.
+     * Mirrors the transform in vanilla's {@code ItemInHandLayer.renderArmWithItem()}.
+     */
+    private static void applyHandTransform(PoseStack ps, Player player, EntityModel<?> parentModel) {
+        if (parentModel instanceof HumanoidModel<?> humanoid) {
+            boolean isRight = player.getMainArm() == HumanoidArm.RIGHT;
+            ModelPart arm = isRight ? humanoid.rightArm : humanoid.leftArm;
+            arm.translateAndRotate(ps);
+            // Item is rendered at the hand tip: mirrors ItemInHandLayer offset
+            ps.translate(isRight ? -0.0078125f : 0.0078125f, -0.625f, 0.0f);
+        } else {
+            // Fallback for non-humanoid models
+            ps.translate(player.getMainArm() == HumanoidArm.RIGHT ? 0.3 : -0.3, -0.4, 0.1);
+        }
     }
 
     private static void applyDefTransform(PoseStack ps, CosmeticDefinition def) {
@@ -158,7 +181,8 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
     // ── Texture management ─────────────────────────────────────────────────────
 
-    private static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
+    /** Package-visible so {@link PetCosmeticRenderer} can share the same cache. */
+    static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
         return TEXTURE_CACHE.computeIfAbsent(id, k -> {
             ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(
                 "manas_cosmetics", "dynamic/" + k.replace(':', '/'));

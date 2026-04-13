@@ -7,6 +7,7 @@ import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import io.github.manasmods.manas_cosmetics.api.WeaponType;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelParser;
+import io.github.manasmods.manas_cosmetics.core.BuiltinPetModels;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,6 +52,7 @@ public final class CosmeticManager {
             .resolve("config")
             .resolve("manas_cosmetics");
         ensureDirectories();
+        BuiltinPetModels.extractIfNeeded(configRoot);
         writeReadme();
         reload();
     }
@@ -117,9 +119,10 @@ public final class CosmeticManager {
                 front/             ← chest-front cosmetics
                 legs/              ← leg cosmetics
                 boots/             ← foot cosmetics
+                ears/              ← ear cosmetics (attaches to head, both ears in one model)
                 orbit/             ← orbiting particles/objects
-                pet/               ← companion pet models
-                weapon/            ← main-hand weapon overlays
+                pet/               ← companion pet models (auto-scaled to ≤1 block tall)
+                weapon/            ← main-hand weapon overlays (renders over held item)
                   sword/           ←   shown when holding a sword
                   longsword/       ←   shown when holding a longsword
                   katana/          ←   shown when holding a katana
@@ -130,6 +133,9 @@ public final class CosmeticManager {
                   scythe/          ←   shown when holding a scythe
                   bow/             ←   shown when holding a bow
                   kunai/           ←   shown when holding a kunai
+                  pickaxe/         ←   shown when holding a pickaxe
+                  gauntlet/        ←   shown when holding a gauntlet
+                  greatsword/      ←   shown when holding a greatsword
                   shield/          ←   shown when holding a shield
                   grimoire/        ←   shown when holding a grimoire
                   magic_staff/     ←   shown when holding a magic staff
@@ -275,9 +281,10 @@ public final class CosmeticManager {
               front        In front of the chest
               legs         On the legs
               boots        On the feet
+              ears         Attached to the sides of the head (model defines both ears)
               orbit        Orbiting around the player
-              pet          Displayed as a pet entity
-              weapon       In the main weapon hand
+              pet          Companion entity (auto-scaled to ≤1 block tall)
+              weapon       Overlaid on the held weapon / tool
               shield       In the shield (off) hand
               grimoire     In the offhand as a magic book
               magic_staff  In the main hand as a staff
@@ -299,6 +306,9 @@ public final class CosmeticManager {
               scythe       Scythes only
               shield       Shields only
               spear        Spears only
+              pickaxe      Pickaxes only
+              gauntlet     Gauntlets only
+              greatsword   Greatswords only
 
             ──────────────────────────────────────────────────────────────────────
             Example Configurations
