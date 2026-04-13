@@ -167,8 +167,9 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             boolean isRight = player.getMainArm() == HumanoidArm.RIGHT;
             ModelPart arm = isRight ? humanoid.rightArm : humanoid.leftArm;
             arm.translateAndRotate(ps);
-            // Item is rendered at the hand tip: mirrors ItemInHandLayer offset
-            ps.translate(isRight ? -0.0078125f : 0.0078125f, -0.625f, 0.0f);
+            // Mirrors the offset in vanilla ItemInHandLayer.renderPlayerArm():
+            // translate(mainHand ? 1/16 : -1/16, -0.625, 0)
+            ps.translate(isRight ? 1 / 16.0f : -1 / 16.0f, -0.625f, 0.0f);
         } else {
             // Fallback for non-humanoid models
             ps.translate(player.getMainArm() == HumanoidArm.RIGHT ? 0.3 : -0.3, -0.4, 0.1);

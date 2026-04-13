@@ -2,6 +2,9 @@ package io.github.manasmods.manas_cosmetics.entity;
 
 import io.github.manasmods.manas_cosmetics.entity.goal.FollowOwnerGoal;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.network.syncher.EntityDataAccessor;
+import net.minecraft.network.syncher.EntityDataSerializers;
+import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
@@ -31,15 +34,24 @@ import java.util.UUID;
  */
 public class PetCosmeticEntity extends PathfinderMob {
 
-    private static final String NBT_OWNER      = "OwnerUUID";
-    private static final String NBT_COSMETIC   = "CosmeticId";
+    private static final String NBT_OWNER    = "OwnerUUID";
+    private static final String NBT_COSMETIC = "CosmeticId";
+
+    /** Synced to clients so PetCosmeticRenderer can look up the correct model. */
+    private static final EntityDataAccessor<String> COSMETIC_ID =
+        SynchedEntityData.defineId(PetCosmeticEntity.class, EntityDataSerializers.STRING);
 
     @Nullable private UUID ownerUUID;
-    private String cosmeticId = "";
 
     public PetCosmeticEntity(EntityType<? extends PetCosmeticEntity> type, Level level) {
         super(type, level);
         setNoAi(false);
+    }
+
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(COSMETIC_ID, "");
     }
 
     // ── Attribute defaults ─────────────────────────────────────────────────────
@@ -99,8 +111,8 @@ public class PetCosmeticEntity extends PathfinderMob {
 
     // ── Cosmetic identity ──────────────────────────────────────────────────────
 
-    public void setCosmeticId(String id) { this.cosmeticId = id; }
-    public String getCosmeticId()        { return cosmeticId; }
+    public void setCosmeticId(String id) { this.entityData.set(COSMETIC_ID, id); }
+    public String getCosmeticId()        { return this.entityData.get(COSMETIC_ID); }
 
     // ── NBT ────────────────────────────────────────────────────────────────────
 
@@ -108,14 +120,14 @@ public class PetCosmeticEntity extends PathfinderMob {
     public void addAdditionalSaveData(CompoundTag tag) {
         super.addAdditionalSaveData(tag);
         if (ownerUUID != null) tag.putUUID(NBT_OWNER, ownerUUID);
-        tag.putString(NBT_COSMETIC, cosmeticId);
+        tag.putString(NBT_COSMETIC, getCosmeticId());
     }
 
     @Override
     public void readAdditionalSaveData(CompoundTag tag) {
         super.readAdditionalSaveData(tag);
         if (tag.hasUUID(NBT_OWNER)) ownerUUID = tag.getUUID(NBT_OWNER);
-        cosmeticId = tag.getString(NBT_COSMETIC);
+        if (tag.contains(NBT_COSMETIC)) setCosmeticId(tag.getString(NBT_COSMETIC));
     }
 
     // ── Misc ───────────────────────────────────────────────────────────────────
