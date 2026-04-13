@@ -9,8 +9,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -429,51 +427,34 @@ public class WardrobeScreen extends Screen {
 
     // ── Network ────────────────────────────────────────────────────────────────
 
-    private static RegistryFriendlyByteBuf createBuf() {
-        Minecraft mc = Minecraft.getInstance();
-        RegistryAccess access = mc.getConnection() != null
-            ? mc.getConnection().registryAccess()
-            : RegistryAccess.EMPTY;
-        return new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), access);
-    }
-
     private void sendEquipPacket(CosmeticSlot slot, String id, boolean forceEquip) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId()); buf.writeUtf(id); buf.writeBoolean(forceEquip);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","equip_c2s"), buf);
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipPayload(slot.getId(), id, forceEquip));
     }
 
     private void sendUnequipPacket(CosmeticSlot slot) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId());
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","unequip_c2s"), buf);
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.UnequipPayload(slot.getId()));
     }
 
     private void sendForceEquipPacket(CosmeticSlot slot, boolean value) {
-        RegistryFriendlyByteBuf buf = createBuf();
-        buf.writeUtf(slot.getId()); buf.writeBoolean(value);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","force_equip_c2s"), buf);
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.ForceEquipPayload(slot.getId(), value));
     }
 
     private void sendPresetSavePacket(String name) {
-        RegistryFriendlyByteBuf buf = createBuf(); buf.writeUtf(name);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_save_c2s"), buf);
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetSavePayload(name));
     }
 
     private void sendPresetLoadPacket(int index) {
-        RegistryFriendlyByteBuf buf = createBuf(); buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_load_c2s"), buf);
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetLoadPayload(index));
     }
 
     private void sendPresetDeletePacket(int index) {
-        RegistryFriendlyByteBuf buf = createBuf(); buf.writeVarInt(index);
         dev.architectury.networking.NetworkManager.sendToServer(
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics","preset_delete_c2s"), buf);
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetDeletePayload(index));
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────

@@ -116,6 +116,7 @@ public final class ManasCosmetics {
     private static void registerWardrobePackets() {
         // Equip
         NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
             WardrobePayloads.EquipPayload.TYPE,
             WardrobePayloads.EquipPayload.STREAM_CODEC,
             (payload, ctx) -> ctx.queue(() -> {
@@ -133,6 +134,7 @@ public final class ManasCosmetics {
 
         // Unequip
         NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
             WardrobePayloads.UnequipPayload.TYPE,
             WardrobePayloads.UnequipPayload.STREAM_CODEC,
             (payload, ctx) -> ctx.queue(() -> {
@@ -147,6 +149,7 @@ public final class ManasCosmetics {
 
         // Force equip toggle
         NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
             WardrobePayloads.ForceEquipPayload.TYPE,
             WardrobePayloads.ForceEquipPayload.STREAM_CODEC,
             (payload, ctx) -> ctx.queue(() -> {
@@ -160,6 +163,7 @@ public final class ManasCosmetics {
 
         // Preset save
         NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
             WardrobePayloads.PresetSavePayload.TYPE,
             WardrobePayloads.PresetSavePayload.STREAM_CODEC,
             (payload, ctx) -> ctx.queue(() -> {
@@ -173,6 +177,7 @@ public final class ManasCosmetics {
 
         // Preset load
         NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
             WardrobePayloads.PresetLoadPayload.TYPE,
             WardrobePayloads.PresetLoadPayload.STREAM_CODEC,
             (payload, ctx) -> ctx.queue(() -> {
@@ -189,6 +194,7 @@ public final class ManasCosmetics {
 
         // Preset delete
         NetworkManager.registerReceiver(
+            NetworkManager.Side.C2S,
             WardrobePayloads.PresetDeletePayload.TYPE,
             WardrobePayloads.PresetDeletePayload.STREAM_CODEC,
             (payload, ctx) -> ctx.queue(() ->

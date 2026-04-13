@@ -133,4 +133,21 @@ public final class WardrobePayloads {
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
+
+    // ── Open wardrobe (S2C) ────────────────────────────────────────────────────
+
+    public record OpenWardrobeS2CPayload() implements CustomPacketPayload {
+
+        public static final CustomPacketPayload.Type<OpenWardrobeS2CPayload> TYPE =
+            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe_s2c"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, OpenWardrobeS2CPayload> STREAM_CODEC =
+            StreamCodec.of(
+                (buf, p) -> {},
+                buf -> new OpenWardrobeS2CPayload()
+            );
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
 }
