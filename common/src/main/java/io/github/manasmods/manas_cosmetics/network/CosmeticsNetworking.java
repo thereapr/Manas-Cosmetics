@@ -2,8 +2,6 @@ package io.github.manasmods.manas_cosmetics.network;
 
 import dev.architectury.networking.NetworkManager;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
 /**
@@ -15,17 +13,14 @@ import net.minecraft.server.level.ServerPlayer;
  */
 public final class CosmeticsNetworking {
 
-    public static final ResourceLocation OPEN_WARDROBE_C2S =
-        ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe");
-
     private CosmeticsNetworking() {}
 
     public static void registerCommon() {
         // C2S: client signals it wants to open the wardrobe (server validates & responds)
         NetworkManager.registerReceiver(
-            NetworkManager.Side.C2S,
-            OPEN_WARDROBE_C2S,
-            (buf, context) -> {
+            WardrobePayloads.OpenWardrobePayload.TYPE,
+            WardrobePayloads.OpenWardrobePayload.STREAM_CODEC,
+            (payload, context) -> {
                 // No payload needed – just trigger the server-side wardrobe open logic.
                 // The actual GUI opens on the client side after login sync.
             }
@@ -42,20 +37,12 @@ public final class CosmeticsNetworking {
         // Send to all other players who can see this player
         player.serverLevel().getChunkSource().broadcastAndSend(
             player,
-            buildSyncPacket(payload, player.registryAccess())
+            NetworkManager.toPacket(NetworkManager.Side.S2C, payload)
         );
     }
 
     /** Sends cosmetic sync only to the given player (e.g. on login). */
     public static void sendSyncToPlayer(SyncPlayerCosmeticsPayload payload, ServerPlayer recipient) {
-        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), recipient.registryAccess());
-        payload.encode(buf);
-        NetworkManager.sendToPlayer(recipient, SyncPlayerCosmeticsPayload.ID, buf);
-    }
-
-    private static net.minecraft.network.protocol.Packet<?> buildSyncPacket(SyncPlayerCosmeticsPayload payload, net.minecraft.core.RegistryAccess registryAccess) {
-        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), registryAccess);
-        payload.encode(buf);
-        return NetworkManager.toPacket(NetworkManager.Side.S2C, SyncPlayerCosmeticsPayload.ID, buf);
+        NetworkManager.sendToPlayer(recipient, payload);
     }
 }

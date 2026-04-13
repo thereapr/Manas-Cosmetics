@@ -15,8 +15,7 @@ import io.github.manasmods.manas_cosmetics.network.CosmeticsNetworking;
 import io.github.manasmods.manas_cosmetics.network.SyncCosmeticRegistryPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
-import net.minecraft.network.RegistryFriendlyByteBuf;
-import net.minecraft.resources.ResourceLocation;
+import io.github.manasmods.manas_cosmetics.network.WardrobePayloads;
 import net.minecraft.server.level.ServerPlayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,11 +66,14 @@ public final class ManasCosmetics {
             CosmeticsNetworking.syncToTrackers(sp);
 
             // Sync every other online player's state to the joiner
-            sp.getServer().getPlayerList().getPlayers().forEach(other -> {
-                if (!other.getUUID().equals(sp.getUUID())) {
-                    CosmeticsNetworking.sendSyncToPlayer(SyncPlayerCosmeticsPayload.of(other), sp);
-                }
-            });
+            var server = sp.getServer();
+            if (server != null) {
+                server.getPlayerList().getPlayers().forEach(other -> {
+                    if (!other.getUUID().equals(sp.getUUID())) {
+                        CosmeticsNetworking.sendSyncToPlayer(SyncPlayerCosmeticsPayload.of(other), sp);
+                    }
+                });
+            }
 
             // Send cosmetic registry (definitions + models) to the client
             sendRegistryToPlayer(sp);
@@ -94,115 +96,104 @@ public final class ManasCosmetics {
     // ── Registry sync ──────────────────────────────────────────────────────────
 
     public static void sendRegistryToPlayer(ServerPlayer player) {
-        SyncCosmeticRegistryPayload payload = SyncCosmeticRegistryPayload.fromManager();
-        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
-        payload.encode(buf);
-        NetworkManager.sendToPlayer(player, SyncCosmeticRegistryPayload.ID, buf);
+        NetworkManager.sendToPlayer(player, SyncCosmeticRegistryPayload.fromManager());
     }
 
     public static void sendPresetsToPlayer(ServerPlayer player) {
-        SyncPresetsPayload payload = SyncPresetsPayload.of(player);
-        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
-        payload.encode(buf);
-        NetworkManager.sendToPlayer(player, SyncPresetsPayload.ID, buf);
+        NetworkManager.sendToPlayer(player, SyncPresetsPayload.of(player));
     }
 
     /** Called after a server-side reload so all clients update their registry. */
     public static void broadcastRegistryToAll(net.minecraft.server.MinecraftServer server) {
         SyncCosmeticRegistryPayload payload = SyncCosmeticRegistryPayload.fromManager();
-        server.getPlayerList().getPlayers().forEach(sp -> {
-            RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), sp.registryAccess());
-            payload.encode(buf);
-            NetworkManager.sendToPlayer(sp, SyncCosmeticRegistryPayload.ID, buf);
-        });
+        server.getPlayerList().getPlayers().forEach(sp ->
+            NetworkManager.sendToPlayer(sp, payload)
+        );
     }
 
     // ── Wardrobe C2S packets ───────────────────────────────────────────────────
 
     private static void registerWardrobePackets() {
-        final NetworkManager.Side C2S = NetworkManager.Side.C2S;
-
         // Equip
-        NetworkManager.registerReceiver(C2S, rl("equip_c2s"), (buf, ctx) -> {
-            String slotId = buf.readUtf();
-            String id     = buf.readUtf();
-            boolean force = buf.readBoolean();
-            ctx.queue(() -> {
+        NetworkManager.registerReceiver(
+            WardrobePayloads.EquipPayload.TYPE,
+            WardrobePayloads.EquipPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
                 ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
-                CosmeticSlot.fromId(slotId).ifPresent(slot -> {
-                    if (!CosmeticManager.get().exists(id)) return;
+                CosmeticSlot.fromId(payload.slotId()).ifPresent(slot -> {
+                    if (!CosmeticManager.get().exists(payload.cosmeticId())) return;
                     PlayerCosmeticData data = PlayerCosmeticData.of(sp);
-                    data.equip(slot, id);
-                    data.setForceEquip(slot, force);
-                    // Spawn / despawn pet as needed
-                    if (slot == CosmeticSlot.PET) PetManager.get().spawn(sp, id);
+                    data.equip(slot, payload.cosmeticId());
+                    data.setForceEquip(slot, payload.force());
+                    if (slot == CosmeticSlot.PET) PetManager.get().spawn(sp, payload.cosmeticId());
                     CosmeticsNetworking.syncToTrackers(sp);
                 });
-            });
-        });
+            })
+        );
 
         // Unequip
-        NetworkManager.registerReceiver(C2S, rl("unequip_c2s"), (buf, ctx) -> {
-            String slotId = buf.readUtf();
-            ctx.queue(() -> {
+        NetworkManager.registerReceiver(
+            WardrobePayloads.UnequipPayload.TYPE,
+            WardrobePayloads.UnequipPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
                 ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
-                CosmeticSlot.fromId(slotId).ifPresent(slot -> {
+                CosmeticSlot.fromId(payload.slotId()).ifPresent(slot -> {
                     PlayerCosmeticData.of(sp).unequip(slot);
                     if (slot == CosmeticSlot.PET) PetManager.get().despawn(sp);
                     CosmeticsNetworking.syncToTrackers(sp);
                 });
-            });
-        });
+            })
+        );
 
         // Force equip toggle
-        NetworkManager.registerReceiver(C2S, rl("force_equip_c2s"), (buf, ctx) -> {
-            String slotId = buf.readUtf();
-            boolean value = buf.readBoolean();
-            ctx.queue(() -> {
+        NetworkManager.registerReceiver(
+            WardrobePayloads.ForceEquipPayload.TYPE,
+            WardrobePayloads.ForceEquipPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
                 ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
-                CosmeticSlot.fromId(slotId).ifPresent(slot -> {
-                    PlayerCosmeticData.of(sp).setForceEquip(slot, value);
+                CosmeticSlot.fromId(payload.slotId()).ifPresent(slot -> {
+                    PlayerCosmeticData.of(sp).setForceEquip(slot, payload.value());
                     CosmeticsNetworking.syncToTrackers(sp);
                 });
-            });
-        });
+            })
+        );
 
         // Preset save
-        NetworkManager.registerReceiver(C2S, rl("preset_save_c2s"), (buf, ctx) -> {
-            String name = buf.readUtf();
-            ctx.queue(() -> {
+        NetworkManager.registerReceiver(
+            WardrobePayloads.PresetSavePayload.TYPE,
+            WardrobePayloads.PresetSavePayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
                 ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
-                if (!PlayerCosmeticData.of(sp).savePreset(name)) {
+                if (!PlayerCosmeticData.of(sp).savePreset(payload.name())) {
                     sp.sendSystemMessage(net.minecraft.network.chat.Component.literal(
                         "[manas_cosmetics] Preset limit reached (max " + CosmeticPreset.MAX_PRESETS + ")."));
                 }
-            });
-        });
+            })
+        );
 
         // Preset load
-        NetworkManager.registerReceiver(C2S, rl("preset_load_c2s"), (buf, ctx) -> {
-            int index = buf.readVarInt();
-            ctx.queue(() -> {
+        NetworkManager.registerReceiver(
+            WardrobePayloads.PresetLoadPayload.TYPE,
+            WardrobePayloads.PresetLoadPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
                 ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
-                PlayerCosmeticData.of(sp).loadPreset(index);
-                // Re-evaluate pet slot after preset switch
+                PlayerCosmeticData.of(sp).loadPreset(payload.index());
                 PlayerCosmeticData.of(sp).getEquipped(CosmeticSlot.PET)
                     .ifPresentOrElse(
                         id -> PetManager.get().spawn(sp, id),
                         () -> PetManager.get().despawn(sp)
                     );
                 CosmeticsNetworking.syncToTrackers(sp);
-            });
-        });
+            })
+        );
 
         // Preset delete
-        NetworkManager.registerReceiver(C2S, rl("preset_delete_c2s"), (buf, ctx) -> {
-            int index = buf.readVarInt();
-            ctx.queue(() -> PlayerCosmeticData.of((ServerPlayer) ctx.getPlayer()).deletePreset(index));
-        });
-    }
-
-    private static ResourceLocation rl(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+        NetworkManager.registerReceiver(
+            WardrobePayloads.PresetDeletePayload.TYPE,
+            WardrobePayloads.PresetDeletePayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() ->
+                PlayerCosmeticData.of((ServerPlayer) ctx.getPlayer()).deletePreset(payload.index())
+            )
+        );
     }
 }

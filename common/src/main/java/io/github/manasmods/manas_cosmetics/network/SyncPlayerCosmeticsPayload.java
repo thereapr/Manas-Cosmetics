@@ -1,10 +1,11 @@
 package io.github.manasmods.manas_cosmetics.network;
 
-import dev.architectury.networking.NetworkManager;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import io.github.manasmods.manas_cosmetics.data.PlayerCosmeticData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -16,10 +17,19 @@ import java.util.UUID;
  * S2C packet that syncs a player's equipped cosmetics and force-equip flags to all clients.
  * Sent on login and whenever the equipped state changes.
  */
-public final class SyncPlayerCosmeticsPayload {
+public final class SyncPlayerCosmeticsPayload implements CustomPacketPayload {
 
     public static final ResourceLocation ID =
         ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "sync_player_cosmetics");
+
+    public static final CustomPacketPayload.Type<SyncPlayerCosmeticsPayload> TYPE =
+        new CustomPacketPayload.Type<>(ID);
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncPlayerCosmeticsPayload> STREAM_CODEC =
+        StreamCodec.of(
+            (buf, payload) -> payload.encode(buf),
+            SyncPlayerCosmeticsPayload::decode
+        );
 
     private final UUID targetPlayer;
     private final Map<String, String> equipped;   // slot id → cosmetic id
@@ -32,6 +42,9 @@ public final class SyncPlayerCosmeticsPayload {
         this.equipped = equipped;
         this.forceEquip = forceEquip;
     }
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
 
     public UUID getTargetPlayer() { return targetPlayer; }
     public Map<String, String> getEquipped() { return equipped; }

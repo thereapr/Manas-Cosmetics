@@ -12,6 +12,9 @@ import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
@@ -32,6 +35,18 @@ public final class ManasCosmticsClient {
         GLFW.GLFW_KEY_LEFT_ALT,
         "key.categories.manas_cosmetics"
     );
+
+    /** S2C payload for the server-triggered wardrobe open signal. */
+    private record OpenWardrobeS2CPayload() implements CustomPacketPayload {
+        static final CustomPacketPayload.Type<OpenWardrobeS2CPayload> TYPE =
+            new CustomPacketPayload.Type<>(
+                ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe_s2c"));
+        static final StreamCodec<RegistryFriendlyByteBuf, OpenWardrobeS2CPayload> STREAM_CODEC =
+            StreamCodec.of((buf, p) -> {}, buf -> new OpenWardrobeS2CPayload());
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
 
     private ManasCosmticsClient() {}
 
@@ -63,60 +78,49 @@ public final class ManasCosmticsClient {
     private static void registerS2CPackets() {
         // ── S2C: sync a player's equipped cosmetics ────────────────────────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            SyncPlayerCosmeticsPayload.ID,
-            (buf, ctx) -> {
-                SyncPlayerCosmeticsPayload payload = SyncPlayerCosmeticsPayload.decode(buf);
-                ctx.queue(() -> {
-                    Minecraft mc = Minecraft.getInstance();
-                    if (mc.player == null) return;
-                    ClientCosmeticState.get().handleSync(payload, mc.player.getUUID());
-                });
-            }
+            SyncPlayerCosmeticsPayload.TYPE,
+            SyncPlayerCosmeticsPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player == null) return;
+                ClientCosmeticState.get().handleSync(payload, mc.player.getUUID());
+            })
         );
 
         // ── S2C: sync the full cosmetic registry (definitions + models) ────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            SyncCosmeticRegistryPayload.ID,
-            (buf, ctx) -> {
-                SyncCosmeticRegistryPayload payload = SyncCosmeticRegistryPayload.decode(buf);
-                ctx.queue(() -> {
-                    ClientCosmeticModelCache cache = ClientCosmeticModelCache.get();
-                    cache.clear();
+            SyncCosmeticRegistryPayload.TYPE,
+            SyncCosmeticRegistryPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
+                ClientCosmeticModelCache cache = ClientCosmeticModelCache.get();
+                cache.clear();
 
-                    List<io.github.manasmods.manas_cosmetics.api.CosmeticDefinition> defs = new ArrayList<>();
-                    for (SyncCosmeticRegistryPayload.Entry e : payload.getEntries()) {
-                        var model = SyncCosmeticRegistryPayload.deserialiseBBModel(e.bbModelJson());
-                        cache.register(e.definition(), model);
-                        defs.add(e.definition());
-                    }
-                    ClientCosmeticState.get().setAvailableCosmetics(defs);
-                });
-            }
+                List<io.github.manasmods.manas_cosmetics.api.CosmeticDefinition> defs = new ArrayList<>();
+                for (SyncCosmeticRegistryPayload.Entry e : payload.getEntries()) {
+                    var model = SyncCosmeticRegistryPayload.deserialiseBBModel(e.bbModelJson());
+                    cache.register(e.definition(), model);
+                    defs.add(e.definition());
+                }
+                ClientCosmeticState.get().setAvailableCosmetics(defs);
+            })
         );
 
         // ── S2C: server signals the client to open the wardrobe ───────────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe_s2c"),
-            (buf, ctx) -> {
-                ctx.queue(() -> Minecraft.getInstance().setScreen(new WardrobeScreen()));
-            }
+            OpenWardrobeS2CPayload.TYPE,
+            OpenWardrobeS2CPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> Minecraft.getInstance().setScreen(new WardrobeScreen()))
         );
 
         // ── S2C: sync the player's saved presets (sent on login) ──────────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            SyncPresetsPayload.ID,
-            (buf, ctx) -> {
-                SyncPresetsPayload payload = SyncPresetsPayload.decode(buf);
-                ctx.queue(() -> {
-                    Minecraft mc = Minecraft.getInstance();
-                    if (mc.player == null) return;
-                    ClientCosmeticState.get().handlePresetsSync(payload);
-                });
-            }
+            SyncPresetsPayload.TYPE,
+            SyncPresetsPayload.STREAM_CODEC,
+            (payload, ctx) -> ctx.queue(() -> {
+                Minecraft mc = Minecraft.getInstance();
+                if (mc.player == null) return;
+                ClientCosmeticState.get().handlePresetsSync(payload);
+            })
         );
     }
 }
