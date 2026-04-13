@@ -20,13 +20,13 @@ public final class WardrobePayloads {
             implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<EquipPayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "equip_c2s"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "equip_c2s"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, EquipPayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> { buf.writeUtf(p.slotId()); buf.writeUtf(p.cosmeticId()); buf.writeBoolean(p.force()); },
-                buf -> new EquipPayload(buf.readUtf(), buf.readUtf(), buf.readBoolean())
-            );
+                StreamCodec.of(
+                        (buf, p) -> { buf.writeUtf(p.slotId()); buf.writeUtf(p.cosmeticId()); buf.writeBoolean(p.force()); },
+                        buf -> new EquipPayload(buf.readUtf(), buf.readUtf(), buf.readBoolean())
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -37,13 +37,13 @@ public final class WardrobePayloads {
     public record UnequipPayload(String slotId) implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<UnequipPayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "unequip_c2s"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "unequip_c2s"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, UnequipPayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> buf.writeUtf(p.slotId()),
-                buf -> new UnequipPayload(buf.readUtf())
-            );
+                StreamCodec.of(
+                        (buf, p) -> buf.writeUtf(p.slotId()),
+                        buf -> new UnequipPayload(buf.readUtf())
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -54,13 +54,13 @@ public final class WardrobePayloads {
     public record ForceEquipPayload(String slotId, boolean value) implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<ForceEquipPayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "force_equip_c2s"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "force_equip_c2s"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, ForceEquipPayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> { buf.writeUtf(p.slotId()); buf.writeBoolean(p.value()); },
-                buf -> new ForceEquipPayload(buf.readUtf(), buf.readBoolean())
-            );
+                StreamCodec.of(
+                        (buf, p) -> { buf.writeUtf(p.slotId()); buf.writeBoolean(p.value()); },
+                        buf -> new ForceEquipPayload(buf.readUtf(), buf.readBoolean())
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -71,13 +71,13 @@ public final class WardrobePayloads {
     public record PresetSavePayload(String name) implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<PresetSavePayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "preset_save_c2s"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "preset_save_c2s"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, PresetSavePayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> buf.writeUtf(p.name()),
-                buf -> new PresetSavePayload(buf.readUtf())
-            );
+                StreamCodec.of(
+                        (buf, p) -> buf.writeUtf(p.name()),
+                        buf -> new PresetSavePayload(buf.readUtf())
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -88,13 +88,13 @@ public final class WardrobePayloads {
     public record PresetLoadPayload(int index) implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<PresetLoadPayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "preset_load_c2s"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "preset_load_c2s"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, PresetLoadPayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> buf.writeVarInt(p.index()),
-                buf -> new PresetLoadPayload(buf.readVarInt())
-            );
+                StreamCodec.of(
+                        (buf, p) -> buf.writeVarInt(p.index()),
+                        buf -> new PresetLoadPayload(buf.readVarInt())
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -105,13 +105,13 @@ public final class WardrobePayloads {
     public record PresetDeletePayload(int index) implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<PresetDeletePayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "preset_delete_c2s"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "preset_delete_c2s"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, PresetDeletePayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> buf.writeVarInt(p.index()),
-                buf -> new PresetDeletePayload(buf.readVarInt())
-            );
+                StreamCodec.of(
+                        (buf, p) -> buf.writeVarInt(p.index()),
+                        buf -> new PresetDeletePayload(buf.readVarInt())
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -122,13 +122,13 @@ public final class WardrobePayloads {
     public record OpenWardrobePayload() implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<OpenWardrobePayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, OpenWardrobePayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> {},
-                buf -> new OpenWardrobePayload()
-            );
+                StreamCodec.of(
+                        (buf, p) -> {},
+                        buf -> new OpenWardrobePayload()
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
@@ -139,13 +139,13 @@ public final class WardrobePayloads {
     public record OpenWardrobeS2CPayload() implements CustomPacketPayload {
 
         public static final CustomPacketPayload.Type<OpenWardrobeS2CPayload> TYPE =
-            new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe_s2c"));
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe_s2c"));
 
         public static final StreamCodec<RegistryFriendlyByteBuf, OpenWardrobeS2CPayload> STREAM_CODEC =
-            StreamCodec.of(
-                (buf, p) -> {},
-                buf -> new OpenWardrobeS2CPayload()
-            );
+                StreamCodec.of(
+                        (buf, p) -> {},
+                        buf -> new OpenWardrobeS2CPayload()
+                );
 
         @Override
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }

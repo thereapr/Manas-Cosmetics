@@ -28,9 +28,9 @@ public final class ManasCosmticsClient {
 
     /** Left Alt key — configurable in Controls settings. */
     public static final KeyMapping WARDROBE_KEY = new KeyMapping(
-        "key.manas_cosmetics.open_wardrobe",
-        GLFW.GLFW_KEY_LEFT_ALT,
-        "key.categories.manas_cosmetics"
+            "key.manas_cosmetics.open_wardrobe",
+            GLFW.GLFW_KEY_LEFT_ALT,
+            "key.categories.manas_cosmetics"
     );
 
     private ManasCosmticsClient() {}
@@ -63,53 +63,53 @@ public final class ManasCosmticsClient {
     private static void registerS2CPackets() {
         // ── S2C: sync a player's equipped cosmetics ────────────────────────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            SyncPlayerCosmeticsPayload.TYPE,
-            SyncPlayerCosmeticsPayload.STREAM_CODEC,
-            (payload, ctx) -> ctx.queue(() -> {
-                Minecraft mc = Minecraft.getInstance();
-                if (mc.player == null) return;
-                ClientCosmeticState.get().handleSync(payload, mc.player.getUUID());
-            })
+                NetworkManager.Side.S2C,
+                SyncPlayerCosmeticsPayload.TYPE,
+                SyncPlayerCosmeticsPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> {
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc.player == null) return;
+                    ClientCosmeticState.get().handleSync(payload, mc.player.getUUID());
+                })
         );
 
         // ── S2C: sync the full cosmetic registry (definitions + models) ────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            SyncCosmeticRegistryPayload.TYPE,
-            SyncCosmeticRegistryPayload.STREAM_CODEC,
-            (payload, ctx) -> ctx.queue(() -> {
-                ClientCosmeticModelCache cache = ClientCosmeticModelCache.get();
-                cache.clear();
+                NetworkManager.Side.S2C,
+                SyncCosmeticRegistryPayload.TYPE,
+                SyncCosmeticRegistryPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> {
+                    ClientCosmeticModelCache cache = ClientCosmeticModelCache.get();
+                    cache.clear();
 
-                List<io.github.manasmods.manas_cosmetics.api.CosmeticDefinition> defs = new ArrayList<>();
-                for (SyncCosmeticRegistryPayload.Entry e : payload.getEntries()) {
-                    var model = SyncCosmeticRegistryPayload.deserialiseBBModel(e.bbModelJson());
-                    cache.register(e.definition(), model);
-                    defs.add(e.definition());
-                }
-                ClientCosmeticState.get().setAvailableCosmetics(defs);
-            })
+                    List<io.github.manasmods.manas_cosmetics.api.CosmeticDefinition> defs = new ArrayList<>();
+                    for (SyncCosmeticRegistryPayload.Entry e : payload.getEntries()) {
+                        var model = SyncCosmeticRegistryPayload.deserialiseBBModel(e.bbModelJson());
+                        cache.register(e.definition(), model);
+                        defs.add(e.definition());
+                    }
+                    ClientCosmeticState.get().setAvailableCosmetics(defs);
+                })
         );
 
         // ── S2C: server signals the client to open the wardrobe ───────────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            WardrobePayloads.OpenWardrobeS2CPayload.TYPE,
-            WardrobePayloads.OpenWardrobeS2CPayload.STREAM_CODEC,
-            (payload, ctx) -> ctx.queue(() -> Minecraft.getInstance().setScreen(new WardrobeScreen()))
+                NetworkManager.Side.S2C,
+                WardrobePayloads.OpenWardrobeS2CPayload.TYPE,
+                WardrobePayloads.OpenWardrobeS2CPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> Minecraft.getInstance().setScreen(new WardrobeScreen()))
         );
 
         // ── S2C: sync the player's saved presets (sent on login) ──────────────
         NetworkManager.registerReceiver(
-            NetworkManager.Side.S2C,
-            SyncPresetsPayload.TYPE,
-            SyncPresetsPayload.STREAM_CODEC,
-            (payload, ctx) -> ctx.queue(() -> {
-                Minecraft mc = Minecraft.getInstance();
-                if (mc.player == null) return;
-                ClientCosmeticState.get().handlePresetsSync(payload);
-            })
+                NetworkManager.Side.S2C,
+                SyncPresetsPayload.TYPE,
+                SyncPresetsPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> {
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc.player == null) return;
+                    ClientCosmeticState.get().handlePresetsSync(payload);
+                })
         );
     }
 }
