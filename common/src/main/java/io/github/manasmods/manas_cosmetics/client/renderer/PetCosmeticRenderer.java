@@ -71,7 +71,8 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         // Apply user-defined scale/offset/rotation from the cosmetic definition on top.
         applyDefTransformWithAutoScale(poseStack, def, autoScale);
 
-        float animTime = entity.tickCount + partialTick;
+        // Keyframe times in .bbmodel are in seconds; convert from ticks (20/s).
+        float animTime = (entity.tickCount + partialTick) / 20.0f;
         BBModelRenderer.render(poseStack, bufferSource, packedLight, model, texture, animTime);
 
         poseStack.popPose();

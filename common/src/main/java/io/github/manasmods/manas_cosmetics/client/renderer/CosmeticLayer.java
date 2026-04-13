@@ -71,6 +71,11 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
             if (cosmeticId.isEmpty()) continue;
 
+            // PET cosmetics are rendered by PetCosmeticRenderer on a separate entity,
+            // not as a player attachment layer. Rendering here would place the model
+            // at the player's root with no transform, producing a white blocky overlay.
+            if (slot == CosmeticSlot.PET) continue;
+
             String id = cosmeticId.get();
             Optional<CosmeticDefinition> defOpt = modelCache.getDefinition(id);
             Optional<BBModelData> modelOpt = modelCache.getModel(id);
@@ -98,7 +103,9 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             applySlotTransform(poseStack, slot, player, partialTick, this.getParentModel());
             applyDefTransform(poseStack, def);
 
-            float animTime = ageInTicks + partialTick;
+            // Keyframe times in .bbmodel are in seconds; ageInTicks is in ticks (20/s).
+            // Divide by 20 so animation speed matches the authored Blockbench timeline.
+            float animTime = ageInTicks / 20.0f;
             BBModelRenderer.render(poseStack, bufferSource, packedLight, model, texture, animTime);
 
             poseStack.popPose();
