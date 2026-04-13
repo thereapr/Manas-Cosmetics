@@ -9,6 +9,7 @@ import io.github.manasmods.manas_cosmetics.client.gui.WardrobeScreen;
 import io.github.manasmods.manas_cosmetics.client.renderer.ClientCosmeticModelCache;
 import io.github.manasmods.manas_cosmetics.network.SyncCosmeticRegistryPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
+import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
@@ -49,10 +50,11 @@ public final class ManasCosmticsClient {
 
         registerS2CPackets();
 
-        // Clear cosmetic state when the player leaves a server
+        // Clear cosmetic and GUI state when the player leaves a server
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
             ClientCosmeticState.get().reset();
             ClientCosmeticModelCache.get().clear();
+            WardrobeScreen.clearSavedState();
         });
 
         ManasCosmetics.LOGGER.info("[manas_cosmetics] Client init complete.");
@@ -100,6 +102,20 @@ public final class ManasCosmticsClient {
             ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "open_wardrobe_s2c"),
             (buf, ctx) -> {
                 ctx.queue(() -> Minecraft.getInstance().setScreen(new WardrobeScreen()));
+            }
+        );
+
+        // ── S2C: sync the player's saved presets (sent on login) ──────────────
+        NetworkManager.registerReceiver(
+            NetworkManager.Side.S2C,
+            SyncPresetsPayload.ID,
+            (buf, ctx) -> {
+                SyncPresetsPayload payload = SyncPresetsPayload.decode(buf);
+                ctx.queue(() -> {
+                    Minecraft mc = Minecraft.getInstance();
+                    if (mc.player == null) return;
+                    ClientCosmeticState.get().handlePresetsSync(payload);
+                });
             }
         );
     }

@@ -3,7 +3,10 @@ package io.github.manasmods.manas_cosmetics.fabric.client;
 import io.github.manasmods.manas_cosmetics.client.ManasCosmticsClient;
 import io.github.manasmods.manas_cosmetics.client.renderer.ClientCosmeticModelCache;
 import io.github.manasmods.manas_cosmetics.client.renderer.CosmeticLayer;
+import io.github.manasmods.manas_cosmetics.client.renderer.PetCosmeticRenderer;
+import io.github.manasmods.manas_cosmetics.entity.EntityRegistry;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 
@@ -22,5 +25,8 @@ public final class ManasCosmeticsFabricClient implements ClientModInitializer {
                 }
             }
         );
+
+        // Register the pet entity renderer so pet cosmetics are visible in the world
+        EntityRendererRegistry.register(EntityRegistry.PET_COSMETIC, PetCosmeticRenderer::new);
     }
 }

@@ -14,6 +14,7 @@ import io.github.manasmods.manas_cosmetics.entity.EntityRegistry;
 import io.github.manasmods.manas_cosmetics.network.CosmeticsNetworking;
 import io.github.manasmods.manas_cosmetics.network.SyncCosmeticRegistryPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
+import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
@@ -42,13 +43,12 @@ public final class ManasCosmetics {
         LifecycleEvent.SERVER_STARTED.register(server -> CosmeticManager.get().init(server));
 
         // Player data: save / load / cleanup
-        // TODO: Fix PlayerEvent.SAVE_DATA and LOAD_DATA - these events may have been renamed
-        // PlayerEvent.SAVE_DATA.register((player, tag) -> {
-        //     if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerSave(sp, tag);
-        // });
-        // PlayerEvent.LOAD_DATA.register((player, tag) -> {
-        //     if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerLoad(sp, tag);
-        // });
+        PlayerEvent.SAVE_DATA.register((player, tag) -> {
+            if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerSave(sp, tag);
+        });
+        PlayerEvent.LOAD_DATA.register((player, tag) -> {
+            if (player instanceof ServerPlayer sp) PlayerCosmeticData.onPlayerLoad(sp, tag);
+        });
         PlayerEvent.PLAYER_QUIT.register(player -> {
             if (player instanceof ServerPlayer sp) {
                 PetManager.get().onPlayerQuit(sp);
@@ -77,15 +77,17 @@ public final class ManasCosmetics {
             // Send cosmetic registry (definitions + models) to the client
             sendRegistryToPlayer(sp);
 
+            // Send the player's saved presets to their client
+            sendPresetsToPlayer(sp);
+
             // Spawn pet entity if one is equipped
             PetManager.get().onPlayerLogin(sp);
         });
 
         // After respawn, re-spawn the pet
-        // TODO: Fix PlayerEvent.PLAYER_RESPAWN event signature
-        // PlayerEvent.PLAYER_RESPAWN.register((newPlayer, conqueredEnd) -> {
-        //     if (newPlayer instanceof ServerPlayer sp) PetManager.get().onPlayerRespawn(sp);
-        // });
+        PlayerEvent.PLAYER_RESPAWN.register((newPlayer, oldLevel, conqueredEnd) -> {
+            if (newPlayer instanceof ServerPlayer sp) PetManager.get().onPlayerRespawn(sp);
+        });
 
         LOGGER.info("[manas_cosmetics] Common init complete.");
     }
@@ -97,6 +99,13 @@ public final class ManasCosmetics {
         RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
         payload.encode(buf);
         NetworkManager.sendToPlayer(player, SyncCosmeticRegistryPayload.ID, buf);
+    }
+
+    public static void sendPresetsToPlayer(ServerPlayer player) {
+        SyncPresetsPayload payload = SyncPresetsPayload.of(player);
+        RegistryFriendlyByteBuf buf = new RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
+        payload.encode(buf);
+        NetworkManager.sendToPlayer(player, SyncPresetsPayload.ID, buf);
     }
 
     /** Called after a server-side reload so all clients update their registry. */

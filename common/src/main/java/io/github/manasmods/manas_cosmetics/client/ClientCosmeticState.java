@@ -4,6 +4,7 @@ import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import io.github.manasmods.manas_cosmetics.data.CosmeticPreset;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
+import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
 
 import java.util.*;
 
@@ -102,6 +103,26 @@ public final class ClientCosmeticState {
         if (index < 0 || index >= presets.size()) return false;
         presets.remove(index);
         return true;
+    }
+
+    // ── Preset sync from server ────────────────────────────────────────────────
+
+    /**
+     * Replaces the local preset list with the authoritative copy received from the server
+     * on login. Called from the {@code SyncPresetsPayload} S2C receiver.
+     */
+    public void handlePresetsSync(SyncPresetsPayload payload) {
+        presets.clear();
+        for (SyncPresetsPayload.WirePreset wp : payload.getPresets()) {
+            CosmeticPreset p = new CosmeticPreset(wp.name());
+            wp.equipped().forEach((slotId, cosmeticId) ->
+                CosmeticSlot.fromId(slotId).ifPresent(slot -> p.getEquippedIds().put(slot, cosmeticId))
+            );
+            wp.forceEquip().forEach((slotId, v) ->
+                CosmeticSlot.fromId(slotId).ifPresent(slot -> p.getForceEquip().put(slot, v))
+            );
+            presets.add(p);
+        }
     }
 
     // ── Other players (for rendering) ─────────────────────────────────────────

@@ -3,6 +3,8 @@ package io.github.manasmods.manas_cosmetics.neoforge.client;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.client.renderer.ClientCosmeticModelCache;
 import io.github.manasmods.manas_cosmetics.client.renderer.CosmeticLayer;
+import io.github.manasmods.manas_cosmetics.client.renderer.PetCosmeticRenderer;
+import io.github.manasmods.manas_cosmetics.entity.EntityRegistry;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -22,10 +24,8 @@ public final class ManasCosmeticsNeoForgeClient {
     private ManasCosmeticsNeoForgeClient() {}
 
     /**
-     * Attaches {@link CosmeticLayer} to both default and slim player renderers.
-     *
-     * {@code getSkinMap()} returns {@code Map<String, EntityRenderer<? extends Player>>},
-     * so we must cast to {@link PlayerRenderer} before calling {@code addLayer()}.
+     * Attaches {@link CosmeticLayer} to both default and slim player renderers,
+     * and registers the pet entity renderer so pet cosmetics are visible in world.
      */
     @SubscribeEvent
     static void onAddLayers(EntityRenderersEvent.AddLayers event) {
@@ -34,5 +34,10 @@ public final class ManasCosmeticsNeoForgeClient {
                 playerRenderer.addLayer(new CosmeticLayer<>(playerRenderer, ClientCosmeticModelCache.get()));
             }
         });
+    }
+
+    @SubscribeEvent
+    static void onRegisterEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(EntityRegistry.PET_COSMETIC.get(), PetCosmeticRenderer::new);
     }
 }
