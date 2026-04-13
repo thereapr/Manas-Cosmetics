@@ -9,6 +9,8 @@ import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.core.CosmeticManager;
 import io.github.manasmods.manas_cosmetics.core.bbmodel.BBModelData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
@@ -24,10 +26,19 @@ import java.util.List;
  *  - Each BBModelData is serialised to a compact JSON string and sent as UTF bytes.
  *    This avoids re-parsing on the client and keeps the format stable.
  */
-public final class SyncCosmeticRegistryPayload {
+public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
 
     public static final ResourceLocation ID =
         ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "sync_cosmetic_registry");
+
+    public static final CustomPacketPayload.Type<SyncCosmeticRegistryPayload> TYPE =
+        new CustomPacketPayload.Type<>(ID);
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncCosmeticRegistryPayload> STREAM_CODEC =
+        StreamCodec.of(
+            (buf, payload) -> payload.encode(buf),
+            SyncCosmeticRegistryPayload::decode
+        );
 
     private static final Gson GSON = new GsonBuilder().create();
 
@@ -38,6 +49,9 @@ public final class SyncCosmeticRegistryPayload {
     public SyncCosmeticRegistryPayload(List<Entry> entries) {
         this.entries = entries;
     }
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
 
     public List<Entry> getEntries() { return entries; }
 

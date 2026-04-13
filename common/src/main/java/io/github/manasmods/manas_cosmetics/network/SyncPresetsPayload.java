@@ -5,6 +5,8 @@ import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
 import io.github.manasmods.manas_cosmetics.data.CosmeticPreset;
 import io.github.manasmods.manas_cosmetics.data.PlayerCosmeticData;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.network.codec.StreamCodec;
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 
@@ -17,10 +19,19 @@ import java.util.Map;
  * S2C packet that sends the owning player's saved presets back to their client on login.
  * Never broadcast to other players — each player only receives their own presets.
  */
-public final class SyncPresetsPayload {
+public final class SyncPresetsPayload implements CustomPacketPayload {
 
     public static final ResourceLocation ID =
         ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "sync_presets");
+
+    public static final CustomPacketPayload.Type<SyncPresetsPayload> TYPE =
+        new CustomPacketPayload.Type<>(ID);
+
+    public static final StreamCodec<RegistryFriendlyByteBuf, SyncPresetsPayload> STREAM_CODEC =
+        StreamCodec.of(
+            (buf, payload) -> payload.encode(buf),
+            SyncPresetsPayload::decode
+        );
 
     /**
      * Wire-format representation of a single preset (slot IDs rather than enum refs so the
@@ -37,6 +48,9 @@ public final class SyncPresetsPayload {
     public SyncPresetsPayload(List<WirePreset> presets) {
         this.presets = presets;
     }
+
+    @Override
+    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
 
     public List<WirePreset> getPresets() { return presets; }
 
