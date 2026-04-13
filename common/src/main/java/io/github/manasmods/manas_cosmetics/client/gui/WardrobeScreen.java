@@ -9,8 +9,6 @@ import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.core.RegistryAccess;
-import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
@@ -431,7 +429,7 @@ public class WardrobeScreen extends Screen {
 
     private void sendEquipPacket(CosmeticSlot slot, String id, boolean forceEquip) {
         dev.architectury.networking.NetworkManager.sendToServer(
-                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipPayload(slot.getId(), id, forceEquip));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipPayload(slot.getId(), id, forceEquip));
     }
 
     private void sendUnequipPacket(CosmeticSlot slot) {

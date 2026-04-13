@@ -173,12 +173,9 @@ public final class ManasCosmteticsCommand {
             player
         );
 
-        var buf = new net.minecraft.network.RegistryFriendlyByteBuf(io.netty.buffer.Unpooled.buffer(), player.registryAccess());
-        buf.writeBoolean(true); // open flag
         dev.architectury.networking.NetworkManager.sendToPlayer(
             player,
-            net.minecraft.resources.ResourceLocation.fromNamespaceAndPath("manas_cosmetics", "open_wardrobe_s2c"),
-            buf
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.OpenWardrobeS2CPayload()
         );
 
         return 1;
