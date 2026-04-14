@@ -17,7 +17,8 @@ public enum CosmeticSlot {
     WEAPON("weapon"),
     SHIELD("shield"),
     GRIMOIRE("grimoire"),
-    MAGIC_STAFF("magic_staff");
+    MAGIC_STAFF("magic_staff"),
+    AURA("aura");
 
     private final String id;
 

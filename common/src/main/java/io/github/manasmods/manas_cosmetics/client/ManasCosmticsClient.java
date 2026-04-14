@@ -84,8 +84,13 @@ public final class ManasCosmticsClient {
 
                     List<io.github.manasmods.manas_cosmetics.api.CosmeticDefinition> defs = new ArrayList<>();
                     for (SyncCosmeticRegistryPayload.Entry e : payload.getEntries()) {
-                        var model = SyncCosmeticRegistryPayload.deserialiseBBModel(e.bbModelJson());
-                        cache.register(e.definition(), model);
+                        // AURA cosmetics send an empty bbModelJson — register definition only.
+                        if (e.bbModelJson().isEmpty()) {
+                            cache.registerDefinitionOnly(e.definition());
+                        } else {
+                            var model = SyncCosmeticRegistryPayload.deserialiseBBModel(e.bbModelJson());
+                            cache.register(e.definition(), model);
+                        }
                         defs.add(e.definition());
                     }
                     ClientCosmeticState.get().setAvailableCosmetics(defs);

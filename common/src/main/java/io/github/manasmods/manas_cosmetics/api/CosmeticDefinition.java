@@ -26,7 +26,8 @@ public record CosmeticDefinition(
             ? WeaponType.fromId(json.get("weapon_type").getAsString())
             : WeaponType.ANY;
         boolean forceEquipAllowed = json.has("force_equip_allowed") && json.get("force_equip_allowed").getAsBoolean();
-        String modelPath = json.get("model").getAsString();
+        // model is optional for slots that use code-generated rendering (e.g. AURA)
+        String modelPath = json.has("model") ? json.get("model").getAsString() : "";
 
         float[] scale = {1f, 1f, 1f};
         if (json.has("scale")) {
