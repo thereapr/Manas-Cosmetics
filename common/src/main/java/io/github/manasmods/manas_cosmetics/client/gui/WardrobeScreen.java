@@ -61,8 +61,8 @@ public class WardrobeScreen extends Screen {
     private static final int COL_SEL       = 0xFF2255AA;  // selected row/tab
     private static final int COL_HOV       = 0xFF1A3A55;  // hovered row
     private static final int COL_TEXT      = 0xFFFFFFFF;  // primary text
-    private static final int COL_TEXT_DIM  = 0xFF8BBEDD;  // secondary text
-    private static final int COL_TITLE     = 0xFF77CCFF;  // title
+    private static final int COL_TEXT_DIM  = 0xFFBBDEF7;  // secondary text
+    private static final int COL_TITLE     = 0xFFAAE4FF;  // title
     private static final int COL_EQUIPPED  = 0xFF44FF88;  // equipped tick
 
     // ── Persistent GUI state (survives between openings in the same session) ───
@@ -108,8 +108,8 @@ public class WardrobeScreen extends Screen {
         guiLeft = (width  - WIDTH)  / 2;
         guiTop  = (height - HEIGHT) / 2;
 
-        int bY1 = guiTop + HEADER_H + CONTENT_H + 4;   // button row 1
-        int bY2 = bY1 + 24;                             // button row 2
+        int bY1 = guiTop + HEADER_H + CONTENT_H + 2;   // button row 1
+        int bY2 = bY1 + 20;                             // button row 2
 
         // Left / main area buttons
         addRenderableWidget(Button.builder(
@@ -153,7 +153,7 @@ public class WardrobeScreen extends Screen {
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.manas_cosmetics.delete_preset"),
                 btn -> deletePreset()
-        ).bounds(rx, bY2 + 24, rbW, 20).build());
+        ).bounds(rx, bY2 + 20, rbW, 20).build());
     }
 
     // ── Background ─────────────────────────────────────────────────────────────
@@ -178,7 +178,7 @@ public class WardrobeScreen extends Screen {
 
         // Title bar
         g.fill(cx + 1, cy + 1, cx + WIDTH - 1, cy + HEADER_H, COL_HEADER);
-        g.drawString(font, title, cx + 5, cy + 3, COL_TITLE, false);
+        g.drawString(font, title, cx + 5, cy + 3, COL_TITLE, true);
 
         // ── Slot sidebar ─────────────────────────────────────────────────────
         int sideX  = cx + 1;
@@ -204,7 +204,7 @@ public class WardrobeScreen extends Screen {
 
             String dot  = anyEquip ? "\u25CF " : "  ";
             int txtCol  = active ? COL_TEXT : COL_TEXT_DIM;
-            g.drawString(font, dot + slotLabel(slot), sideX + 5, rowY + 2, anyEquip ? COL_EQUIPPED : txtCol, false);
+            g.drawString(font, dot + slotLabel(slot), sideX + 5, rowY + 2, anyEquip ? COL_EQUIPPED : txtCol, true);
         }
         g.disableScissor();
 
@@ -222,7 +222,7 @@ public class WardrobeScreen extends Screen {
         // Slot header
         g.drawString(font,
                 activeSlot.getId().replace('_', ' ').toUpperCase(),
-                listX + 4, listY + 2, COL_TEXT_DIM, false);
+                listX + 4, listY + 2, COL_TEXT_DIM, true);
 
         int itemY0 = listY + ROW_H + 2;
         int itemH  = listH - ROW_H - 2;
@@ -244,7 +244,7 @@ public class WardrobeScreen extends Screen {
             g.drawString(font,
                     (eq ? "\u2714 " : "  ") + def.displayName(),
                     listX + 4, rowY + 2,
-                    eq ? COL_EQUIPPED : COL_TEXT, false);
+                    eq ? COL_EQUIPPED : COL_TEXT, true);
         }
         g.disableScissor();
 
@@ -259,7 +259,7 @@ public class WardrobeScreen extends Screen {
         // ── Player preview (top half) ────────────────────────────────────────
         int prevY = contentY;
         g.fill(rpX, prevY, rpX + rpW, prevY + PREVIEW_H, COL_INNER);
-        g.drawString(font, "Preview", rpX + 3, prevY + 2, COL_TEXT_DIM, false);
+        g.drawString(font, "Preview", rpX + 3, prevY + 2, COL_TEXT_DIM, true);
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
@@ -282,7 +282,7 @@ public class WardrobeScreen extends Screen {
         int plY = sepY + 1;
         int plH = PRESET_LIST_H - 1;
         g.fill(rpX, plY, rpX + rpW, plY + plH, COL_INNER);
-        g.drawString(font, "Presets", rpX + 3, plY + 2, COL_TEXT_DIM, false);
+        g.drawString(font, "Presets", rpX + 3, plY + 2, COL_TEXT_DIM, true);
 
         int plItemY0 = plY + ROW_H + 2;
         int plItemH  = plH - ROW_H - 2;
@@ -298,7 +298,7 @@ public class WardrobeScreen extends Screen {
                     && mouseY >= rowY && mouseY < rowY + ROW_H) {
                 g.fill(rpX, rowY, rpX + rpW, rowY + ROW_H, COL_HOV);
             }
-            g.drawString(font, presets.get(i).getName(), rpX + 4, rowY + 2, COL_TEXT, false);
+            g.drawString(font, presets.get(i).getName(), rpX + 4, rowY + 2, COL_TEXT, true);
         }
         g.disableScissor();
 
