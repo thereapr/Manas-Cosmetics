@@ -15,7 +15,7 @@ public final class EntityRegistry {
     public static final RegistrySupplier<EntityType<PetCosmeticEntity>> PET_COSMETIC =
         ENTITIES.register("pet_cosmetic", () ->
             EntityType.Builder.<PetCosmeticEntity>of(PetCosmeticEntity::new, MobCategory.MISC)
-                .sized(0.5f, 0.5f)
+                .sized(0.6f, 1.0f)  // height ≥ 1 block prevents sinking through half-block gaps
                 .noSummon()
                 .noSave()   // Pets are re-spawned from player NBT on login; no world-save needed
                 .clientTrackingRange(10)

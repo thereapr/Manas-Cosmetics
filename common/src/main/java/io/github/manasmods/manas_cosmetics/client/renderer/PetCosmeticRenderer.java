@@ -140,7 +140,9 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         ps.translate(o[0] * UNITS_TO_BLOCKS, o[1] * UNITS_TO_BLOCKS, o[2] * UNITS_TO_BLOCKS);
         // Combine user-defined scale with auto-scale
         ps.scale(s[0] * autoScale, s[1] * autoScale, s[2] * autoScale);
-        if (r[0] != 0) ps.mulPose(new org.joml.Quaternionf().rotateX((float) Math.toRadians(r[0])));
+        // Skip X rotation — the [180,0,0] default in CosmeticDefinition is for player-attached
+        // slots and flips pet entities upside down. Pet models are expected to stand upright;
+        // the renderer's yaw rotation already handles the correct facing direction.
         if (r[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(r[1])));
         if (r[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(r[2])));
     }

@@ -172,24 +172,17 @@ public final class BuiltinPetModels {
         return sb.toString();
     }
 
-    private static String buildSidecar(String id, String displayName, String mobType) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{\n");
-        sb.append("  \"id\":                  \"manas_cosmetics:").append(id).append("\",\n");
-        sb.append("  \"display_name\":        \"").append(displayName).append("\",\n");
-        sb.append("  \"slot\":                \"pet\",\n");
-        sb.append("  \"force_equip_allowed\": true,\n");
-        sb.append("  \"model\":               \"models/pet/").append(id).append(".bbmodel\",\n");
-        if (mobType != null) {
-            // Vanilla mob rendering: the .bbmodel above is kept as a fallback on disk
-            // but at runtime the vanilla EntityRenderer is used instead.
-            sb.append("  \"mob_type\":            \"").append(mobType).append("\",\n");
-        }
-        sb.append("  \"scale\":               [1.0, 1.0, 1.0],\n");
-        sb.append("  \"offset\":              [0.0, 0.0, 0.0],\n");
-        sb.append("  \"rotation\":            [180.0, 0.0, 0.0]\n");
-        sb.append("}");
-        return sb.toString();
+    private static String buildSidecar(String id, String displayName) {
+        return "{\n"
+            + "  \"id\":                  \"manas_cosmetics:" + id + "\",\n"
+            + "  \"display_name\":        \"" + displayName + "\",\n"
+            + "  \"slot\":                \"pet\",\n"
+            + "  \"force_equip_allowed\": true,\n"
+            + "  \"model\":               \"models/pet/" + id + ".bbmodel\",\n"
+            + "  \"scale\":               [1.0, 1.0, 1.0],\n"
+            + "  \"offset\":              [0.0, 0.0, 0.0],\n"
+            + "  \"rotation\":            [0.0, 0.0, 0.0]\n"
+            + "}";
     }
 
     // ── File helpers ───────────────────────────────────────────────────────────

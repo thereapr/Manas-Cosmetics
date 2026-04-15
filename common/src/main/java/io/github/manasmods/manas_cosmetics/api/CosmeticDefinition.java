@@ -45,8 +45,11 @@ public record CosmeticDefinition(
             offset = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
         }
 
-        // Default X=180 so models face the correct direction out-of-the-box
-        float[] rotation = {180f, 0f, 0f};
+        // Player-attachment slots (head, body, back …) need X=180 so Blockbench models face
+        // outward by default. Weapon and pet slots use their own orientation logic and must NOT
+        // receive the flip — weapons follow arm-bone transforms, pets have their own yaw rotation.
+        boolean needsFlip = !slot.isWeaponSlot() && slot != CosmeticSlot.PET;
+        float[] rotation = needsFlip ? new float[]{180f, 0f, 0f} : new float[]{0f, 0f, 0f};
         if (json.has("rotation")) {
             var arr = json.getAsJsonArray("rotation");
             rotation = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
