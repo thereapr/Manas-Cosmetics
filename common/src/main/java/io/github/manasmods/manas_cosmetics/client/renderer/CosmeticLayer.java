@@ -76,6 +76,15 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             // at the player's root with no transform, producing a white blocky overlay.
             if (slot == CosmeticSlot.PET) continue;
 
+            // AURA cosmetics use AuraRenderer with procedurally generated geometry.
+            // They have no BBModel, so skip the model lookup entirely.
+            if (slot == CosmeticSlot.AURA) {
+                poseStack.pushPose();
+                AuraRenderer.render(poseStack, bufferSource, packedLight, ageInTicks / 20.0f);
+                poseStack.popPose();
+                continue;
+            }
+
             String id = cosmeticId.get();
             Optional<CosmeticDefinition> defOpt = modelCache.getDefinition(id);
             Optional<BBModelData> modelOpt = modelCache.getModel(id);
@@ -146,6 +155,7 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             case BOOTS       -> ps.translate(0, -0.7,   0);
             case ORBIT       -> applyOrbitTransform(ps, player, pt);
             case PET         -> {}  // pet entity handles its own position
+            case AURA        -> {}  // aura is handled before this switch; never reached
             case WEAPON, SHIELD, GRIMOIRE, MAGIC_STAFF -> applyHandTransform(ps, player, parentModel);
         }
     }

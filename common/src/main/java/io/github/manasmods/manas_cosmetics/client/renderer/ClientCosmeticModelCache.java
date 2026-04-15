@@ -26,6 +26,11 @@ public final class ClientCosmeticModelCache {
         models.put(def.id(), model);
     }
 
+    /** Registers a definition that has no associated BBModel (e.g. AURA slot cosmetics). */
+    public void registerDefinitionOnly(CosmeticDefinition def) {
+        definitions.put(def.id(), def);
+    }
+
     public Optional<CosmeticDefinition> getDefinition(String id) {
         return Optional.ofNullable(definitions.get(id));
     }

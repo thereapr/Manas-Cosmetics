@@ -122,6 +122,7 @@ public final class CosmeticManager {
                 ears/              ← ear cosmetics (attaches to head, both ears in one model)
                 orbit/             ← orbiting particles/objects
                 pet/               ← companion pet models (auto-scaled to ≤1 block tall)
+                aura/              ← (no model needed) code-generated aura rings around the player
                 weapon/            ← main-hand weapon overlays (renders over held item)
                   sword/           ←   shown when holding a sword
                   longsword/       ←   shown when holding a longsword
@@ -284,6 +285,7 @@ public final class CosmeticManager {
               ears         Attached to the sides of the head (model defines both ears)
               orbit        Orbiting around the player
               pet          Companion entity (auto-scaled to ≤1 block tall)
+              aura         Code-generated glowing rings centred on the player (no model file needed)
               weapon       Overlaid on the held weapon / tool
               shield       In the shield (off) hand
               grimoire     In the offhand as a magic book

@@ -316,9 +316,15 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
         Collection<CosmeticDefinition> defs = CosmeticManager.get().getAllDefinitions();
         List<Entry> entries = new ArrayList<>(defs.size());
         for (CosmeticDefinition def : defs) {
-            CosmeticManager.get().getModel(def.id()).ifPresent(model ->
-                entries.add(new Entry(def, serialiseBBModel(model)))
-            );
+            // AURA cosmetics have no BBModel — send an empty string so the client knows
+            // to register the definition without trying to parse model data.
+            if (def.slot() == io.github.manasmods.manas_cosmetics.api.CosmeticSlot.AURA) {
+                entries.add(new Entry(def, ""));
+            } else {
+                CosmeticManager.get().getModel(def.id()).ifPresent(model ->
+                    entries.add(new Entry(def, serialiseBBModel(model)))
+                );
+            }
         }
         return new SyncCosmeticRegistryPayload(entries);
     }
