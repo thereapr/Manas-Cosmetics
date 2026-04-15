@@ -177,7 +177,7 @@ public final class BuiltinPetModels {
             + "  \"model\":               \"models/pet/" + id + ".bbmodel\",\n"
             + "  \"scale\":               [1.0, 1.0, 1.0],\n"
             + "  \"offset\":              [0.0, 0.0, 0.0],\n"
-            + "  \"rotation\":            [180.0, 0.0, 0.0]\n"
+            + "  \"rotation\":            [0.0, 0.0, 0.0]\n"
             + "}";
     }
 
