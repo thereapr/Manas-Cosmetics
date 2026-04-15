@@ -3,6 +3,8 @@ package io.github.manasmods.manas_cosmetics.neoforge.client;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.client.renderer.ClientCosmeticModelCache;
 import io.github.manasmods.manas_cosmetics.client.renderer.CosmeticLayer;
+import io.github.manasmods.manas_cosmetics.client.renderer.PetCosmeticRenderer;
+import io.github.manasmods.manas_cosmetics.entity.EntityRegistry;
 import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -20,6 +22,12 @@ import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 public final class ManasCosmeticsNeoForgeClient {
 
     private ManasCosmeticsNeoForgeClient() {}
+
+    /** Registers the pet entity renderer. */
+    @SubscribeEvent
+    static void onRegisterRenderers(EntityRenderersEvent.RegisterRenderers event) {
+        event.registerEntityRenderer(EntityRegistry.PET_COSMETIC.get(), PetCosmeticRenderer::new);
+    }
 
     /**
      * Attaches {@link CosmeticLayer} to both default and slim player renderers.

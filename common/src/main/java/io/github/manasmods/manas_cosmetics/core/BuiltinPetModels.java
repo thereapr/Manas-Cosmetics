@@ -37,7 +37,7 @@ public final class BuiltinPetModels {
             Path sidecarPath = cosmeticsDir.resolve(spec.id() + ".json");
 
             writeIfAbsent(modelPath,   buildBBModel(spec.id(), spec.cubes()));
-            writeIfAbsent(sidecarPath, buildSidecar(spec.id(), spec.displayName()));
+            writeIfAbsent(sidecarPath, buildSidecar(spec.id(), spec.displayName(), spec.mobType()));
         }
     }
 
@@ -47,10 +47,14 @@ public final class BuiltinPetModels {
     private record CubeDef(String name, float fx, float fy, float fz,
                            float tx, float ty, float tz) {}
 
-    private record PetSpec(String id, String displayName, List<CubeDef> cubes) {}
+    /**
+     * @param mobType  Vanilla entity type ID to use for rendering (e.g. {@code "minecraft:pig"}),
+     *                 or {@code null} to keep BBModel-based rendering.
+     */
+    private record PetSpec(String id, String displayName, String mobType, List<CubeDef> cubes) {}
 
     private static final List<PetSpec> PETS = List.of(
-        new PetSpec("pet_pig", "Pig", List.of(
+        new PetSpec("pet_pig", "Pig", "minecraft:pig", List.of(
             new CubeDef("body",    -6f,  4f, -4f,   6f, 10f,  4f),
             new CubeDef("head",    -4f, 10f, -8f,   4f, 16f, -2f),
             new CubeDef("snout",   -2f, 11f,-10f,   2f, 14f, -7f),
@@ -59,7 +63,7 @@ public final class BuiltinPetModels {
             new CubeDef("leg_bl",  -5f,  0f,  1f,  -2f,  4f,  3f),
             new CubeDef("leg_br",   2f,  0f,  1f,   5f,  4f,  3f)
         )),
-        new PetSpec("pet_chicken", "Chicken", List.of(
+        new PetSpec("pet_chicken", "Chicken", "minecraft:chicken", List.of(
             new CubeDef("body",   -4f,  4f, -3f,   4f, 10f,  3f),
             new CubeDef("head",   -3f, 10f, -5f,   3f, 15f,  0f),
             new CubeDef("beak",   -1f, 12f, -7f,   1f, 14f, -5f),
@@ -68,8 +72,8 @@ public final class BuiltinPetModels {
             new CubeDef("leg_l",  -3f,  0f,  0f,  -1f,  4f,  2f),
             new CubeDef("leg_r",   1f,  0f,  0f,   3f,  4f,  2f)
         )),
-        // Wolf is ~23 BBM tall — PetCosmeticRenderer auto-scales to 1 block
-        new PetSpec("pet_wolf", "Wolf", List.of(
+        // Wolf is ~23 BBM tall — kept as BBModel fallback cubes but rendered via vanilla mob
+        new PetSpec("pet_wolf", "Wolf", "minecraft:wolf", List.of(
             new CubeDef("body",    -5f,  7f, -4f,   5f, 14f,  5f),
             new CubeDef("head",    -4f, 14f, -8f,   4f, 20f,  0f),
             new CubeDef("ear_l",   -4f, 19f, -7f,  -1f, 23f, -5f),
@@ -81,8 +85,8 @@ public final class BuiltinPetModels {
             new CubeDef("leg_br",   1f,  0f,  2f,   4f,  7f,  5f),
             new CubeDef("tail",    -2f,  9f,  5f,   2f, 12f, 10f)
         )),
-        // Wither is ~24 BBM tall — auto-scaled to 1 block
-        new PetSpec("pet_wither", "Wither", List.of(
+        // Wither: use vanilla WitherBoss renderer scaled to 1 block
+        new PetSpec("pet_wither", "Wither", "minecraft:wither", List.of(
             new CubeDef("spine",    -2f,  0f, -1f,   2f, 10f,  1f),
             new CubeDef("rib_l",    -5f,  6f, -1f,  -2f,  9f,  1f),
             new CubeDef("rib_r",     2f,  6f, -1f,   5f,  9f,  1f),
@@ -92,8 +96,8 @@ public final class BuiltinPetModels {
             new CubeDef("skull_l", -10f, 15f, -3f,  -4f, 21f,  3f),
             new CubeDef("skull_r",   4f, 15f, -3f,  10f, 21f,  3f)
         )),
-        // Ender dragon — ~21 BBM tall, wide wings auto-scaled to 1 block height
-        new PetSpec("pet_ender_dragon", "Ender Dragon", List.of(
+        // Ender Dragon: kept as BBModel — EnderDragon has complex multi-part rendering
+        new PetSpec("pet_ender_dragon", "Ender Dragon", null, List.of(
             new CubeDef("body",     -5f,  6f, -2f,   5f, 13f,  7f),
             new CubeDef("neck",     -3f, 11f, -6f,   3f, 15f,  0f),
             new CubeDef("head",     -4f, 13f,-12f,   4f, 19f, -5f),

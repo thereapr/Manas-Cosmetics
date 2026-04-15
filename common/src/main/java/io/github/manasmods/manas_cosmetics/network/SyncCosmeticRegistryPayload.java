@@ -70,6 +70,8 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
             for (float v : d.scale())    buf.writeFloat(v);
             for (float v : d.offset())   buf.writeFloat(v);
             for (float v : d.rotation()) buf.writeFloat(v);
+            // Empty string means no mob_type (preserves backward compat)
+            buf.writeUtf(d.mobType() != null ? d.mobType() : "");
             buf.writeUtf(e.bbModelJson());
         }
     }
@@ -87,6 +89,8 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
             float[] scale    = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
             float[] offset   = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
             float[] rotation = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
+            String mobTypeRaw      = buf.readUtf();
+            String mobType         = mobTypeRaw.isEmpty() ? null : mobTypeRaw;
             String bbModelJson     = buf.readUtf();
 
             var slot = io.github.manasmods.manas_cosmetics.api.CosmeticSlot.fromId(slotId)
@@ -94,7 +98,7 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
             var weaponType = io.github.manasmods.manas_cosmetics.api.WeaponType.fromId(weaponTypeId);
 
             CosmeticDefinition def = new CosmeticDefinition(
-                id, displayName, slot, weaponType, forceEquip, modelPath, scale, offset, rotation);
+                id, displayName, slot, weaponType, forceEquip, modelPath, scale, offset, rotation, mobType);
             entries.add(new Entry(def, bbModelJson));
         }
         return new SyncCosmeticRegistryPayload(entries);

@@ -51,10 +51,25 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
 
         ClientCosmeticModelCache cache = ClientCosmeticModelCache.get();
         Optional<CosmeticDefinition> defOpt = cache.getDefinition(cosmeticId);
-        Optional<BBModelData> modelOpt = cache.getModel(cosmeticId);
-        if (defOpt.isEmpty() || modelOpt.isEmpty()) return;
+        if (defOpt.isEmpty()) return;
 
         CosmeticDefinition def = defOpt.get();
+
+        // ── Vanilla mob rendering path ─────────────────────────────────────────
+        // When mob_type is set, delegate entirely to the vanilla EntityRenderer for
+        // that mob type.  The display mob handles its own rotations internally, so
+        // we must NOT apply an extra yaw rotation here.
+        if (def.mobType() != null && !def.mobType().isEmpty()) {
+            MobPetRenderer.render(entity, def.mobType(), entityYaw, partialTick,
+                                  poseStack, bufferSource, packedLight);
+            super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
+            return;
+        }
+
+        // ── BBModel rendering path ─────────────────────────────────────────────
+        Optional<BBModelData> modelOpt = cache.getModel(cosmeticId);
+        if (modelOpt.isEmpty()) return;
+
         BBModelData model = modelOpt.get();
 
         ResourceLocation texture = CosmeticLayer.getOrUploadTexture(cosmeticId, model);

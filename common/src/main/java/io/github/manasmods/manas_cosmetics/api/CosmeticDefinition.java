@@ -1,10 +1,12 @@
 package io.github.manasmods.manas_cosmetics.api;
 
 import com.google.gson.JsonObject;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a single cosmetic item, parsed from a sidecar .json file.
- * The visual data (geometry, texture, animations) comes from the referenced .bbmodel file.
+ * The visual data (geometry, texture, animations) comes from the referenced .bbmodel file,
+ * or — when {@link #mobType} is set — from the vanilla Minecraft mob renderer directly.
  */
 public record CosmeticDefinition(
     String id,
@@ -15,7 +17,10 @@ public record CosmeticDefinition(
     String modelPath,
     float[] scale,
     float[] offset,
-    float[] rotation
+    float[] rotation,
+    /** When non-null, this pet is rendered using the vanilla mob renderer for this entity type
+     *  (e.g. {@code "minecraft:pig"}) scaled down to 1 block, instead of the BBModel. */
+    @Nullable String mobType
 ) {
     public static CosmeticDefinition fromJson(JsonObject json) {
         String id = json.get("id").getAsString();
@@ -26,7 +31,7 @@ public record CosmeticDefinition(
             ? WeaponType.fromId(json.get("weapon_type").getAsString())
             : WeaponType.ANY;
         boolean forceEquipAllowed = json.has("force_equip_allowed") && json.get("force_equip_allowed").getAsBoolean();
-        String modelPath = json.get("model").getAsString();
+        String modelPath = json.has("model") ? json.get("model").getAsString() : "";
 
         float[] scale = {1f, 1f, 1f};
         if (json.has("scale")) {
@@ -50,7 +55,9 @@ public record CosmeticDefinition(
             rotation = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
         }
 
-        return new CosmeticDefinition(id, displayName, slot, weaponType, forceEquipAllowed, modelPath, scale, offset, rotation);
+        String mobType = json.has("mob_type") ? json.get("mob_type").getAsString() : null;
+
+        return new CosmeticDefinition(id, displayName, slot, weaponType, forceEquipAllowed, modelPath, scale, offset, rotation, mobType);
     }
 
     /** Namespace portion of the id, e.g. "manas_cosmetics" from "manas_cosmetics:icicle_wings". */
