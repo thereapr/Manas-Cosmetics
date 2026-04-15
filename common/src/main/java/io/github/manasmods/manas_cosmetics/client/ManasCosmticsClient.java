@@ -7,6 +7,7 @@ import dev.architectury.registry.client.keymappings.KeyMappingRegistry;
 import io.github.manasmods.manas_cosmetics.ManasCosmetics;
 import io.github.manasmods.manas_cosmetics.client.gui.WardrobeScreen;
 import io.github.manasmods.manas_cosmetics.client.renderer.ClientCosmeticModelCache;
+import io.github.manasmods.manas_cosmetics.client.renderer.MobPetRenderer;
 import io.github.manasmods.manas_cosmetics.network.SyncCosmeticRegistryPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
@@ -54,6 +55,7 @@ public final class ManasCosmticsClient {
         ClientPlayerEvent.CLIENT_PLAYER_QUIT.register(player -> {
             ClientCosmeticState.get().reset();
             ClientCosmeticModelCache.get().clear();
+            MobPetRenderer.clearCache();
             WardrobeScreen.clearSavedState();
         });
 

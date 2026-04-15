@@ -442,21 +442,28 @@ public final class CosmeticManager {
             JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
             CosmeticDefinition def = CosmeticDefinition.fromJson(obj);
 
-            // AURA slot cosmetics use code-generated rendering and do not need a .bbmodel file.
-            if (def.slot() == CosmeticSlot.AURA) {
-                definitions.put(def.id(), def);
-                return;
-            }
+            BBModelData modelData;
 
-            // Load the referenced .bbmodel
-            Path modelPath = configRoot.resolve(def.modelPath());
-            if (!Files.exists(modelPath)) {
-                LOGGER.warn("[manas_cosmetics] Model file not found for cosmetic '{}': {}", def.id(), modelPath);
-                return;
+            if (def.mobType() != null && !def.mobType().isEmpty()) {
+                // Vanilla mob pet: the BBModel is optional.  If one exists we still
+                // load it (could be used as a fallback), otherwise use an empty placeholder.
+                Path modelPath = configRoot.resolve(def.modelPath());
+                if (!def.modelPath().isEmpty() && Files.exists(modelPath)) {
+                    String bbmodelJson = Files.readString(modelPath, StandardCharsets.UTF_8);
+                    modelData = BBModelParser.parse(bbmodelJson);
+                } else {
+                    modelData = BBModelData.empty();
+                }
+            } else {
+                // Standard BBModel cosmetic: the model file is required.
+                Path modelPath = configRoot.resolve(def.modelPath());
+                if (!Files.exists(modelPath)) {
+                    LOGGER.warn("[manas_cosmetics] Model file not found for cosmetic '{}': {}", def.id(), modelPath);
+                    return;
+                }
+                String bbmodelJson = Files.readString(modelPath, StandardCharsets.UTF_8);
+                modelData = BBModelParser.parse(bbmodelJson);
             }
-
-            String bbmodelJson = Files.readString(modelPath, StandardCharsets.UTF_8);
-            BBModelData modelData = BBModelParser.parse(bbmodelJson);
 
             definitions.put(def.id(), def);
             models.put(def.id(), modelData);

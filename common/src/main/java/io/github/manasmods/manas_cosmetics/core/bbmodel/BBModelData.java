@@ -17,6 +17,11 @@ public record BBModelData(
     byte[] textureBytes,
     Map<String, Animation> animations
 ) {
+    /** Returns an empty placeholder used when a cosmetic uses vanilla mob rendering instead of a BBModel. */
+    public static BBModelData empty() {
+        return new BBModelData("empty", 16, 16, List.of(), new byte[0], Map.of());
+    }
+
 
     public record Bone(
         String name,
