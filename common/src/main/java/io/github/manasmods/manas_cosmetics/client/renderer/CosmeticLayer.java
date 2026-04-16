@@ -168,18 +168,27 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     }
 
     /**
-     * Positions the weapon overlay exactly where Minecraft's {@code ItemInHandLayer} renders
+     * Positions the weapon cosmetic exactly where Minecraft's {@code ItemInHandLayer} renders
      * the held item in third-person view, so the cosmetic overlays the actual weapon model.
-     * Mirrors the transform in vanilla's {@code ItemInHandLayer.renderArmWithItem()}.
+     *
+     * Replicates the THIRD_PERSON_RIGHT/LEFT_HAND display transform from vanilla's
+     * {@code item/handheld.json} (the parent model for swords and most hand-held weapons):
+     *   translation [2, 0.1, -1.9] display-units, rotation [0, -90, 55] degrees.
+     * The left-hand variant mirrors X translation and negates the rotations.
      */
     private static void applyHandTransform(PoseStack ps, Player player, EntityModel<?> parentModel) {
         if (parentModel instanceof HumanoidModel<?> humanoid) {
             boolean isRight = player.getMainArm() == HumanoidArm.RIGHT;
             ModelPart arm = isRight ? humanoid.rightArm : humanoid.leftArm;
             arm.translateAndRotate(ps);
-            // Mirrors the offset in vanilla ItemInHandLayer.renderPlayerArm():
-            // translate(mainHand ? 1/16 : -1/16, -0.625, 0)
-            ps.translate(isRight ? 1 / 16.0f : -1 / 16.0f, -0.625f, 0.0f);
+            // Vanilla item/handheld.json thirdperson display translation (1 unit = 1/16 block).
+            // X is mirrored for the left hand (item renderer auto-mirrors via leftHand flag,
+            // so we mirror manually here since BBModelRenderer has no such flag).
+            float sign = isRight ? 1f : -1f;
+            ps.translate(sign * 2f / 16f, 0.1f / 16f, -1.9f / 16f);
+            // Vanilla item/handheld.json thirdperson rotation: Y=-90, Z=55 (right hand).
+            ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -90f)));
+            ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 55f)));
         } else {
             // Fallback for non-humanoid models
             ps.translate(player.getMainArm() == HumanoidArm.RIGHT ? 0.3 : -0.3, -0.4, 0.1);
