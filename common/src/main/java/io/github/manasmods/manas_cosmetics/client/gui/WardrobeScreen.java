@@ -492,6 +492,7 @@ public class WardrobeScreen extends Screen {
             case SHIELD      -> "Shield";
             case GRIMOIRE    -> "Grimoire";
             case MAGIC_STAFF -> "Magic Staff";
+            case AURA        -> "Aura";
         };
     }
 

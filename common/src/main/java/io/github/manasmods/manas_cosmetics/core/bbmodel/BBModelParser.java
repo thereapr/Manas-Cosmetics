@@ -229,16 +229,33 @@ public final class BBModelParser {
     private static float[] readVec3Array(JsonElement el) {
         if (el.isJsonArray()) {
             JsonArray a = el.getAsJsonArray();
-            return new float[]{a.get(0).getAsFloat(), a.get(1).getAsFloat(), a.get(2).getAsFloat()};
+            return new float[]{
+                parseFloatSafe(a.get(0)),
+                parseFloatSafe(a.get(1)),
+                parseFloatSafe(a.get(2))
+            };
         }
         return new float[]{0, 0, 0};
     }
 
     private static float[] readVec3FromDataPoint(JsonObject dp) {
         return new float[]{
-            dp.has("x") ? dp.get("x").getAsFloat() : 0f,
-            dp.has("y") ? dp.get("y").getAsFloat() : 0f,
-            dp.has("z") ? dp.get("z").getAsFloat() : 0f
+            dp.has("x") ? parseFloatSafe(dp.get("x")) : 0f,
+            dp.has("y") ? parseFloatSafe(dp.get("y")) : 0f,
+            dp.has("z") ? parseFloatSafe(dp.get("z")) : 0f
         };
+    }
+
+    /**
+     * Newer Blockbench exports write keyframe values as strings ("0", "-22.5") or
+     * Molang expressions ("math.sin(...)"). Parse numeric strings; fall back to 0
+     * for Molang or anything else we cannot evaluate at load time.
+     */
+    private static float parseFloatSafe(JsonElement el) {
+        try {
+            return el.getAsFloat();
+        } catch (NumberFormatException | UnsupportedOperationException e) {
+            return 0f;
+        }
     }
 }
