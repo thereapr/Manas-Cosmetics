@@ -591,12 +591,12 @@ public final class CosmeticManager {
         switch (slot) {
             case HELMET -> {
                 scale    = "[1.0, 1.0, 1.0]";
-                offset   = "[0.0, -13.0, 0.0]";
+                offset   = "[0.0, -3.5, 0.0]";
                 rotation = "[180.0, 180.0, 0.0]";
             }
             case ABOVE_HEAD -> {
                 scale    = "[1.0, 1.0, 1.0]";
-                offset   = "[0.0, -3.5, 0.0]";
+                offset   = "[0.0, -13.0, 0.0]";
                 rotation = "[180.0, 180.0, 0.0]";
             }
             case CHESTPLATE -> {
