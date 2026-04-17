@@ -110,7 +110,14 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
             poseStack.pushPose();
             applySlotTransform(poseStack, slot, player, partialTick, this.getParentModel());
-            applyDefTransform(poseStack, def);
+            // Weapon slots: only scale is user-configurable — position and orientation are
+            // locked to the hand by applyHandTransform so every weapon model sits in the hand.
+            if (slot.isWeaponSlot()) {
+                float[] s = def.scale();
+                poseStack.scale(s[0], s[1], s[2]);
+            } else {
+                applyDefTransform(poseStack, def);
+            }
 
             // Keyframe times in .bbmodel are in seconds; ageInTicks is in ticks (20/s).
             // Divide by 20 so animation speed matches the authored Blockbench timeline.
@@ -168,13 +175,15 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     }
 
     /**
-     * Positions the weapon cosmetic so it sits in the player's hand, blade pointing in the
-     * same direction as a vanilla held weapon in third-person view.
+     * Positions the weapon cosmetic in the player's hand with the blade pointing the same
+     * direction as a vanilla held sword.
      *
-     * Translation: moves to the hand (bottom of arm, 10/16 blocks below the arm pivot).
-     * Rotation: applies vanilla {@code item/handheld.json} thirdperson_righthand rotation
-     *   (Y=-90°, Z=+55°) so the blade aligns with how a sword is held.
-     * Left-hand variant mirrors X and negates both rotations.
+     * The render-layer pose stack is post scale(-1,-1,1), so +Y in this space points toward
+     * the feet (away from head). The arm pivot is at the shoulder; the hand (10 model units
+     * below the pivot) is therefore at +0.625 in this space.
+     *
+     * Rotation replicates vanilla item/handheld.json thirdperson_righthand:
+     *   Y=-90°, Z=+55° (right hand); mirrored for left hand.
      */
     private static void applyHandTransform(PoseStack ps, Player player, EntityModel<?> parentModel) {
         if (parentModel instanceof HumanoidModel<?> humanoid) {
@@ -182,11 +191,10 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             ModelPart arm = isRight ? humanoid.rightArm : humanoid.leftArm;
             arm.translateAndRotate(ps);
             float sign = isRight ? 1f : -1f;
-            // Translate to the hand (bottom of arm, 10/16 blocks below pivot in arm-local space).
-            // X offset matches vanilla ItemInHandLayer hand grip position.
-            ps.translate(sign / 16f, -0.625f, 0f);
-            // Apply vanilla item/handheld.json thirdperson_righthand rotation so the blade
-            // points in the same direction as a held sword: Y=-90, Z=+55 (right hand).
+            // +Y is toward the feet in the post-scale(-1,-1,1) render space, so +0.625
+            // reaches the hand (10 model units below the shoulder pivot).
+            ps.translate(sign / 16f, 0.625f, 0f);
+            // Vanilla handheld.json thirdperson_righthand rotation: Y=-90, Z=+55.
             ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -90f)));
             ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 55f)));
         } else {
