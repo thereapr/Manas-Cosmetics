@@ -493,7 +493,8 @@ public final class CosmeticManager {
      *   <li>{@code slot}         – taken from the first path segment under {@code models/}</li>
      *   <li>{@code weapon_type}  – taken from the second segment when the slot is {@code weapon}</li>
      *   <li>{@code model}        – relative path from {@code config/manas_cosmetics/}</li>
-     *   <li>Defaults: {@code scale [1,1,1]}, {@code offset [0,0,0]}, {@code rotation [180,0,0]}</li>
+     *   <li>Defaults vary by slot: helmet/above_head use offset&amp;rotation tuned for head attachment;
+     *       chestplate/back use chest/back-specific offsets; all others default to {@code offset [0,0,0]}, {@code rotation [180,0,0]}</li>
      * </ul>
      *
      * @return number of new sidecar files written
@@ -586,6 +587,35 @@ public final class CosmeticManager {
     private static String buildSidecarJson(
         String id, String displayName, CosmeticSlot slot, WeaponType weaponType, String modelPath
     ) {
+        String scale, offset, rotation;
+        switch (slot) {
+            case HELMET -> {
+                scale    = "[1.0, 1.0, 1.0]";
+                offset   = "[0.0, -13.0, 0.0]";
+                rotation = "[180.0, 180.0, 0.0]";
+            }
+            case ABOVE_HEAD -> {
+                scale    = "[1.0, 1.0, 1.0]";
+                offset   = "[0.0, -3.5, 0.0]";
+                rotation = "[180.0, 180.0, 0.0]";
+            }
+            case CHESTPLATE -> {
+                scale    = "[1.0, 1.0, 1.0]";
+                offset   = "[0.0, 3.2, 0.0]";
+                rotation = "[180.0, 0.0, 0.0]";
+            }
+            case BACK -> {
+                scale    = "[1.0, 1.0, 1.0]";
+                offset   = "[0.0, 17.0, 3.0]";
+                rotation = "[180.0, 0.0, 0.0]";
+            }
+            default -> {
+                scale    = "[1.0, 1.0, 1.0]";
+                offset   = "[0.0, 0.0, 0.0]";
+                rotation = "[180.0, 0.0, 0.0]";
+            }
+        }
+
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
         sb.append("  \"id\":                  \"").append(id).append("\",\n");
@@ -596,9 +626,9 @@ public final class CosmeticManager {
         }
         sb.append("  \"force_equip_allowed\": true,\n");
         sb.append("  \"model\":               \"").append(modelPath).append("\",\n");
-        sb.append("  \"scale\":               [1.0, 1.0, 1.0],\n");
-        sb.append("  \"offset\":              [0.0, 0.0, 0.0],\n");
-        sb.append("  \"rotation\":            [180.0, 0.0, 0.0]\n");
+        sb.append("  \"scale\":               ").append(scale).append(",\n");
+        sb.append("  \"offset\":              ").append(offset).append(",\n");
+        sb.append("  \"rotation\":            ").append(rotation).append("\n");
         sb.append("}");
         return sb.toString();
     }
