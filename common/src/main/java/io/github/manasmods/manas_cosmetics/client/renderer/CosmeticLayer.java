@@ -168,25 +168,25 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     }
 
     /**
-     * Positions the weapon cosmetic exactly where Minecraft's {@code ItemInHandLayer} renders
-     * the held item in third-person view, so the cosmetic overlays the actual weapon model.
+     * Positions the weapon cosmetic so it sits in the player's hand, blade pointing in the
+     * same direction as a vanilla held weapon in third-person view.
      *
-     * Replicates the THIRD_PERSON_RIGHT/LEFT_HAND display transform from vanilla's
-     * {@code item/handheld.json} (the parent model for swords and most hand-held weapons):
-     *   translation [2, 0.1, -1.9] display-units, rotation [0, -90, 55] degrees.
-     * The left-hand variant mirrors X translation and negates the rotations.
+     * Translation: moves to the hand (bottom of arm, 10/16 blocks below the arm pivot).
+     * Rotation: applies vanilla {@code item/handheld.json} thirdperson_righthand rotation
+     *   (Y=-90°, Z=+55°) so the blade aligns with how a sword is held.
+     * Left-hand variant mirrors X and negates both rotations.
      */
     private static void applyHandTransform(PoseStack ps, Player player, EntityModel<?> parentModel) {
         if (parentModel instanceof HumanoidModel<?> humanoid) {
             boolean isRight = player.getMainArm() == HumanoidArm.RIGHT;
             ModelPart arm = isRight ? humanoid.rightArm : humanoid.leftArm;
             arm.translateAndRotate(ps);
-            // Vanilla item/handheld.json thirdperson display translation (1 unit = 1/16 block).
-            // X is mirrored for the left hand (item renderer auto-mirrors via leftHand flag,
-            // so we mirror manually here since BBModelRenderer has no such flag).
             float sign = isRight ? 1f : -1f;
-            ps.translate(sign * 2f / 16f, 0.1f / 16f, -1.9f / 16f);
-            // Vanilla item/handheld.json thirdperson rotation: Y=-90, Z=55 (right hand).
+            // Translate to the hand (bottom of arm, 10/16 blocks below pivot in arm-local space).
+            // X offset matches vanilla ItemInHandLayer hand grip position.
+            ps.translate(sign / 16f, -0.625f, 0f);
+            // Apply vanilla item/handheld.json thirdperson_righthand rotation so the blade
+            // points in the same direction as a held sword: Y=-90, Z=+55 (right hand).
             ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -90f)));
             ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 55f)));
         } else {
