@@ -1,5 +1,7 @@
 package io.github.manasmods.manas_cosmetics.core;
 
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +39,40 @@ public final class BuiltinPetModels {
             Path sidecarPath = cosmeticsDir.resolve(spec.id() + ".json");
 
             writeIfAbsent(modelPath,   buildBBModel(spec.id(), spec.cubes()));
-            writeIfAbsent(sidecarPath, buildSidecar(spec.id(), spec.displayName(), spec.mobType()));
+            if (!Files.exists(sidecarPath)) {
+                writeIfAbsent(sidecarPath, buildSidecar(spec.id(), spec.displayName(), spec.mobType()));
+            } else {
+                migrateSidecar(sidecarPath, spec);
+            }
+        }
+    }
+
+    /**
+     * Upgrades a pre-existing built-in pet sidecar to match the current schema:
+     * injects {@code mob_type} when missing so the pet uses vanilla mob rendering,
+     * and strips {@code offset}/{@code rotation} fields which have no effect for pets.
+     * Preserves user-edited values of other fields (display_name, scale, force_equip_allowed).
+     */
+    private static void migrateSidecar(Path sidecarPath, PetSpec spec) {
+        try {
+            String raw = Files.readString(sidecarPath, StandardCharsets.UTF_8);
+            JsonObject obj = JsonParser.parseString(raw).getAsJsonObject();
+
+            boolean mobTypeMissing = spec.mobType() != null
+                    && (!obj.has("mob_type") || obj.get("mob_type").isJsonNull()
+                        || obj.get("mob_type").getAsString().isEmpty());
+            boolean hasOffset   = obj.has("offset");
+            boolean hasRotation = obj.has("rotation");
+
+            if (!mobTypeMissing && !hasOffset && !hasRotation) return;
+
+            String displayName = obj.has("display_name") ? obj.get("display_name").getAsString() : spec.displayName();
+            String mobType     = spec.mobType();
+
+            Files.writeString(sidecarPath, buildSidecar(spec.id(), displayName, mobType), StandardCharsets.UTF_8);
+            LOGGER.info("[manas_cosmetics] Migrated builtin pet sidecar: {}", sidecarPath.getFileName());
+        } catch (Exception e) {
+            LOGGER.warn("[manas_cosmetics] Failed to migrate builtin pet sidecar {}: {}", sidecarPath, e.getMessage());
         }
     }
 
