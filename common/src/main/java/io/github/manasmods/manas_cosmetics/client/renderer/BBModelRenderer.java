@@ -150,12 +150,23 @@ public final class BBModelRenderer {
         // Vertex order: position → color → uv0 (texture) → uv1 (overlay) → uv2 (light) → normal
         // setOverlay(NO_OVERLAY) is required; without it the overlay defaults to 0 (the hurt/red
         // position in the overlay texture), producing a red tint over the whole cosmetic.
+        //
+        // Faces are emitted twice (front + back) because entityCutoutNoCull draws both sides but
+        // only one normal is supplied per vertex. Without the second emission the back side gets
+        // the front's normal, which points away from the entity diffuse lights — producing the
+        // black flash seen when the view passes through the face's back half-space.
         final PoseStack.Pose entry = poseStack.last();
         final Matrix4f pose = entry.pose();
         buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
         buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
         buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
         buf.addVertex(pose, x3, y3, z3).setColor(255,255,255,255).setUv(u0,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,nx,ny,nz);
+
+        // Back side: reverse winding (v3 → v2 → v1 → v0) and flip the normal.
+        buf.addVertex(pose, x3, y3, z3).setColor(255,255,255,255).setUv(u0,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,-nx,-ny,-nz);
+        buf.addVertex(pose, x2, y2, z2).setColor(255,255,255,255).setUv(u1,v1).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,-nx,-ny,-nz);
+        buf.addVertex(pose, x1, y1, z1).setColor(255,255,255,255).setUv(u1,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,-nx,-ny,-nz);
+        buf.addVertex(pose, x0, y0, z0).setColor(255,255,255,255).setUv(u0,v0).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(entry,-nx,-ny,-nz);
     }
 
     // ── Animation interpolation ────────────────────────────────────────────────
@@ -188,7 +199,13 @@ public final class BBModelRenderer {
         float end = frames.get(frames.size() - 1).time();
         if (end > 0) time = time % end;
 
-        BBModelData.Keyframe prev = frames.get(0);
+        // Before the first keyframe, hold the first value rather than extrapolating
+        // backwards (which would drive bones to nonsensical poses — e.g. wings
+        // snapping apart from their rest transform when no frame exists at t=0).
+        BBModelData.Keyframe first = frames.get(0);
+        if (time <= first.time()) return first.values();
+
+        BBModelData.Keyframe prev = first;
         for (int i = 1; i < frames.size(); i++) {
             BBModelData.Keyframe next = frames.get(i);
             if (time <= next.time()) {
