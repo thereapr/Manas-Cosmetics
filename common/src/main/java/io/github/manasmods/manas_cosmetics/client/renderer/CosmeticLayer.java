@@ -197,8 +197,11 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             // Vanilla thirdperson_righthand: Y=-90, Z=+55. In the post-scale(-1,-1,1) render
             // space +Y points toward feet, so Z=+55 tilts blade down; Z=+125 (=180-55) tilts
             // blade up, matching the iron sword's blade-up appearance.
+            // X=+90 rolls the blade 90° around its length axis so the edge faces up/down
+            // rather than left/right.
             ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -90f)));
             ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 125f)));
+            ps.mulPose(new org.joml.Quaternionf().rotateX((float) Math.toRadians(90f)));
         } else {
             // Fallback for non-humanoid models
             ps.translate(player.getMainArm() == HumanoidArm.RIGHT ? 0.3 : -0.3, -0.4, 0.1);
