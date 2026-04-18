@@ -15,5 +15,4 @@ dependencies {
     modImplementation("maven.modrinth:fabric-permissions-api:$fabric_permissions_api_version")
     modImplementation("maven.modrinth:luckperms:$fabric_luckperms_version")
 
-    modLocalRuntime "maven.modrinth:tensura-reincarnated:$tensura_version"
 }
