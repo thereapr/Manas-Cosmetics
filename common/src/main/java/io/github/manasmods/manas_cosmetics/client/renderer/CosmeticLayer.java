@@ -193,7 +193,9 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             float sign = isRight ? 1f : -1f;
             // +Y is toward the feet in the post-scale(-1,-1,1) render space, so +0.625
             // reaches the hand (10 model units below the shoulder pivot).
-            ps.translate(sign / 16f, 0.625f, 0f);
+            // +Z=0.125 (2 model units) places the weapon at the arm's front face (palm),
+            // matching where vanilla held items appear.
+            ps.translate(sign / 16f, 0.625f, 0.125f);
             // Vanilla thirdperson_righthand: Y=-90, Z=+55. In the post-scale(-1,-1,1) render
             // space +Y points toward feet, so Z=+55 tilts blade down; Z=+125 (=180-55) tilts
             // blade up, matching the iron sword's blade-up appearance.
