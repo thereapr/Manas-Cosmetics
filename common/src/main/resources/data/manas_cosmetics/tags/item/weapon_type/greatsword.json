@@ -1,0 +1,20 @@
+{
+  "replace": false,
+  "values": [
+    "tensura:wood_greatsword",
+    "tensura:stone_greatsword",
+    "tensura:iron_greatsword",
+    "tensura:gold_greatsword",
+    "tensura:diamond_greatsword",
+    "tensura:netherite_greatsword",
+    "tensura:silver_greatsword",
+    "tensura:demon_steel_greatsword",
+    "tensura:low_magisteel_greatsword",
+    "tensura:high_magisteel_greatsword",
+    "tensura:pure_magisteel_greatsword",
+    "tensura:orichalcum_greatsword",
+    "tensura:mithril_greatsword",
+    "tensura:adamantite_greatsword",
+    "tensura:hihi_irokane_greatsword"
+  ]
+}

@@ -80,7 +80,7 @@ public final class MobPetRenderer {
             p.setAccessible(true);
         } catch (NoSuchFieldException e) {
             LOGGER.warn("[manas_cosmetics] WalkAnimationState reflection failed – walk animation will not sync. "
-                + "This usually means an incompatible MC version. Error: {}", e.getMessage());
+                    + "This usually means an incompatible MC version. Error: {}", e.getMessage());
         }
         WALK_SPEED_OLD = so;
         WALK_SPEED     = s;
@@ -117,15 +117,19 @@ public final class MobPetRenderer {
 
         // Scale so the mob's hitbox height maps to exactly 1 block
         float mobHeight = displayMob.getType().getHeight();
-        float scale = mobHeight > 0.001f ? 1.0f / mobHeight : 1.0f;
+        float mobWidth  = displayMob.getType().getWidth();
+        float scaleH = mobHeight > 0.001f ? 1.0f / mobHeight : 1.0f;
+        float scaleW = mobWidth  > 0.001f ? 2.0f / mobWidth  : 1.0f;
+        // Most restrictive axis wins; never upscale beyond 1.0
+        float scale = Math.min(1.0f, Math.min(scaleH, scaleW));
 
         poseStack.pushPose();
         poseStack.scale(scale, scale, scale);
 
         EntityRenderer<Mob> renderer =
-            (EntityRenderer<Mob>) Minecraft.getInstance()
-                .getEntityRenderDispatcher()
-                .getRenderer(displayMob);
+                (EntityRenderer<Mob>) Minecraft.getInstance()
+                        .getEntityRenderDispatcher()
+                        .getRenderer(displayMob);
 
         // Call the renderer directly (not via dispatcher) to avoid double-shadow
         // rendering and name-tag logic that belongs to the pet entity, not the proxy.
@@ -173,18 +177,18 @@ public final class MobPetRenderer {
         }
 
         return BuiltInRegistries.ENTITY_TYPE
-            .getOptional(id)
-            .map(type -> {
-                Entity e = type.create(level);
-                if (e instanceof Mob mob) return mob;
-                if (e != null) e.discard();
-                LOGGER.warn("[manas_cosmetics] mob_type '{}' is not a Mob – ignoring", mobTypeId);
-                return null;
-            })
-            .orElseGet(() -> {
-                LOGGER.warn("[manas_cosmetics] Unknown mob_type for pet: '{}'", mobTypeId);
-                return null;
-            });
+                .getOptional(id)
+                .map(type -> {
+                    Entity e = type.create(level);
+                    if (e instanceof Mob mob) return mob;
+                    if (e != null) e.discard();
+                    LOGGER.warn("[manas_cosmetics] mob_type '{}' is not a Mob – ignoring", mobTypeId);
+                    return null;
+                })
+                .orElseGet(() -> {
+                    LOGGER.warn("[manas_cosmetics] Unknown mob_type for pet: '{}'", mobTypeId);
+                    return null;
+                });
     }
 
     // ── State synchronisation ──────────────────────────────────────────────────

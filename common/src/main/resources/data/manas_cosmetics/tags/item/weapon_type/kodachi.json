@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "tensura:wood_kodachi",
+    "tensura:stone_kodachi",
+    "tensura:iron_kodachi",
+    "tensura:gold_kodachi",
+    "tensura:diamond_kodachi",
+    "tensura:netherite_kodachi",
+    "tensura:silver_kodachi",
+    "tensura:demon_steel_kodachi",
+    "tensura:low_magisteel_kodachi",
+    "tensura:high_magisteel_kodachi",
+    "tensura:pure_magisteel_kodachi",
+    "tensura:orichalcum_kodachi",
+    "tensura:mithril_kodachi",
+    "tensura:adamantite_kodachi",
+    "tensura:hihi_irokane_kodachi",
+    "tensura:gobta_kodachi"
+  ]
+}

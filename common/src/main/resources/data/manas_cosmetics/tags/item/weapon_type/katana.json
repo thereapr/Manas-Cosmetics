@@ -1,0 +1,21 @@
+{
+  "replace": false,
+  "values": [
+    "tensura:wood_katana",
+    "tensura:stone_katana",
+    "tensura:iron_katana",
+    "tensura:gold_katana",
+    "tensura:diamond_katana",
+    "tensura:netherite_katana",
+    "tensura:silver_katana",
+    "tensura:demon_steel_katana",
+    "tensura:low_magisteel_katana",
+    "tensura:high_magisteel_katana",
+    "tensura:pure_magisteel_katana",
+    "tensura:orichalcum_katana",
+    "tensura:mithril_katana",
+    "tensura:adamantite_katana",
+    "tensura:hihi_irokane_katana",
+    "tensura:crimson_lotus_edge"
+  ]
+}

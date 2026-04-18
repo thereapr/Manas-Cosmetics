@@ -102,11 +102,6 @@ subprojects {
         }
 
         maven {
-            name = "ManasCore"
-            url = 'https://nexus.nighti.dev/repository/manasmods-public/'
-        }
-
-        maven {
             name = "GeckoLib"
             url = "https://dl.cloudsmith.io/public/geckolib3/geckolib/maven/"
         }
@@ -133,16 +128,6 @@ subprojects {
             modImplementation "net.fabricmc:fabric-loader:$rootProject.fabric_loader_version"
             modImplementation "dev.architectury:architectury:$rootProject.architectury_api_version"
 
-            modImplementation "io.github.manasmods:manascore-attribute-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-command-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-config-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-inventory-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-keybind-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-network-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-race-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-skill-common:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-storage-common:$rootProject.manasCoreVersion"
-
             modCompileOnly "software.bernie.geckolib:geckolib-fabric-1.21.1:$rootProject.geckolib_version"
         }
 
@@ -154,16 +139,6 @@ subprojects {
             common(project(path: ':common', configuration: 'namedElements')) { transitive false }
             shadowBundle project(path: ':common', configuration: 'transformProductionFabric')
 
-            modImplementation "io.github.manasmods:manascore-attribute-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-command-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-config-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-inventory-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-keybind-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-network-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-race-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-skill-fabric:$rootProject.manasCoreVersion"
-            modImplementation "io.github.manasmods:manascore-storage-fabric:$rootProject.manasCoreVersion"
-
             modImplementation "software.bernie.geckolib:geckolib-fabric-1.21.1:$rootProject.geckolib_version"
         }
 
@@ -173,16 +148,6 @@ subprojects {
 
             common(project(path: ':common', configuration: 'namedElements')) { transitive false }
             shadowBundle project(path: ':common', configuration: 'transformProductionNeoForge')
-
-            implementation "io.github.manasmods:manascore-attribute-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-command-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-config-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-inventory-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-keybind-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-network-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-race-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-skill-neoforge:$rootProject.manasCoreVersion"
-            implementation "io.github.manasmods:manascore-storage-neoforge:$rootProject.manasCoreVersion"
 
             modImplementation "software.bernie.geckolib:geckolib-neoforge-1.21.1:$rootProject.geckolib_version"
         }

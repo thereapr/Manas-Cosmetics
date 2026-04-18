@@ -110,7 +110,14 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
             poseStack.pushPose();
             applySlotTransform(poseStack, slot, player, partialTick, this.getParentModel());
-            applyDefTransform(poseStack, def);
+            // Weapon slots: only scale is user-configurable — position and orientation are
+            // locked to the hand by applyHandTransform so every weapon model sits in the hand.
+            if (slot.isWeaponSlot()) {
+                float[] s = def.scale();
+                poseStack.scale(s[0], s[1], s[2]);
+            } else {
+                applyDefTransform(poseStack, def);
+            }
 
             // Keyframe times in .bbmodel are in seconds; ageInTicks is in ticks (20/s).
             // Divide by 20 so animation speed matches the authored Blockbench timeline.
@@ -202,18 +209,35 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     }
 
     /**
-     * Positions the weapon overlay exactly where Minecraft's {@code ItemInHandLayer} renders
-     * the held item in third-person view, so the cosmetic overlays the actual weapon model.
-     * Mirrors the transform in vanilla's {@code ItemInHandLayer.renderArmWithItem()}.
+     * Positions the weapon cosmetic in the player's hand with the blade pointing the same
+     * direction as a vanilla held sword.
+     *
+     * The render-layer pose stack is post scale(-1,-1,1), so +Y in this space points toward
+     * the feet (away from head). The arm pivot is at the shoulder; the hand (10 model units
+     * below the pivot) is therefore at +0.625 in this space.
+     *
+     * Rotation replicates vanilla item/handheld.json thirdperson_righthand:
+     *   Y=-90°, Z=+125° (right hand); mirrored for left hand.
      */
     private static void applyHandTransform(PoseStack ps, Player player, EntityModel<?> parentModel) {
         if (parentModel instanceof HumanoidModel<?> humanoid) {
             boolean isRight = player.getMainArm() == HumanoidArm.RIGHT;
             ModelPart arm = isRight ? humanoid.rightArm : humanoid.leftArm;
             arm.translateAndRotate(ps);
-            // Mirrors the offset in vanilla ItemInHandLayer.renderPlayerArm():
-            // translate(mainHand ? 1/16 : -1/16, -0.625, 0)
-            ps.translate(isRight ? 1 / 16.0f : -1 / 16.0f, -0.625f, 0.0f);
+            float sign = isRight ? 1f : -1f;
+            // +Y is toward the feet in the post-scale(-1,-1,1) render space, so +0.625
+            // reaches the hand (10 model units below the shoulder pivot).
+            ps.translate(sign * -0.03f, 0.625f, 0f);
+            // Vanilla thirdperson_righthand: Y=-90, Z=+55. In the post-scale(-1,-1,1) render
+            // space +Y points toward feet, so Z=+55 tilts blade down; Z=+125 (=180-55) tilts
+            // blade up, matching the iron sword's blade-up appearance.
+            // The axial rotation rolls the model 90° around the blade's own length axis
+            // (direction (-0.819, -0.574, 0) in render space after Y+Z) without disturbing
+            // the upward tilt, so the edge faces up/down rather than left/right.
+            ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -35f)));
+            ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 145f)));
+            ps.mulPose(new org.joml.Quaternionf().rotationAxis(
+                    (float) Math.toRadians(sign * 90f), sign * -0.819f, -0.574f, 0f));
         } else {
             // Fallback for non-humanoid models
             ps.translate(player.getMainArm() == HumanoidArm.RIGHT ? 0.3 : -0.3, -0.4, 0.1);
@@ -234,7 +258,7 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     // ── Texture management ─────────────────────────────────────────────────────
 
     /** Package-visible so {@link PetCosmeticRenderer} can share the same cache. */
-    static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
+    public static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
         return TEXTURE_CACHE.computeIfAbsent(id, k -> {
             ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(
                 "manas_cosmetics", "dynamic/" + k.replace(':', '/'));

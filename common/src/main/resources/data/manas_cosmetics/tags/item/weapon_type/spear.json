@@ -1,0 +1,20 @@
+{
+  "replace": false,
+  "values": [
+    "tensura:wood_spear",
+    "tensura:stone_spear",
+    "tensura:iron_spear",
+    "tensura:gold_spear",
+    "tensura:diamond_spear",
+    "tensura:netherite_spear",
+    "tensura:silver_spear",
+    "tensura:demon_steel_spear",
+    "tensura:low_magisteel_spear",
+    "tensura:high_magisteel_spear",
+    "tensura:pure_magisteel_spear",
+    "tensura:orichalcum_spear",
+    "tensura:mithril_spear",
+    "tensura:adamantite_spear",
+    "tensura:hihi_irokane_spear"
+  ]
+}

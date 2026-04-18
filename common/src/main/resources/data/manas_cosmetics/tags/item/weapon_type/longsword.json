@@ -1,0 +1,20 @@
+{
+  "replace": false,
+  "values": [
+    "tensura:wood_longsword",
+    "tensura:stone_longsword",
+    "tensura:iron_longsword",
+    "tensura:gold_longsword",
+    "tensura:diamond_longsword",
+    "tensura:netherite_longsword",
+    "tensura:silver_longsword",
+    "tensura:demon_steel_longsword",
+    "tensura:low_magisteel_longsword",
+    "tensura:high_magisteel_longsword",
+    "tensura:pure_magisteel_longsword",
+    "tensura:orichalcum_longsword",
+    "tensura:mithril_longsword",
+    "tensura:adamantite_longsword",
+    "tensura:hihi_irokane_longsword"
+  ]
+}
