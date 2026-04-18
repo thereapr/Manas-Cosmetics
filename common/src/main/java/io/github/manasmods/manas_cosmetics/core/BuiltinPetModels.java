@@ -172,17 +172,18 @@ public final class BuiltinPetModels {
         return sb.toString();
     }
 
-    private static String buildSidecar(String id, String displayName) {
-        return "{\n"
+    private static String buildSidecar(String id, String displayName, String mobType) {
+        String base = "{\n"
             + "  \"id\":                  \"manas_cosmetics:" + id + "\",\n"
             + "  \"display_name\":        \"" + displayName + "\",\n"
             + "  \"slot\":                \"pet\",\n"
             + "  \"force_equip_allowed\": true,\n"
             + "  \"model\":               \"models/pet/" + id + ".bbmodel\",\n"
-            + "  \"scale\":               [1.0, 1.0, 1.0],\n"
-            + "  \"offset\":              [0.0, 0.0, 0.0],\n"
-            + "  \"rotation\":            [0.0, 0.0, 0.0]\n"
-            + "}";
+            + "  \"scale\":               [1.0, 1.0, 1.0]";
+        if (mobType != null) {
+            base += ",\n  \"mob_type\":            \"" + mobType + "\"";
+        }
+        return base + "\n}";
     }
 
     // ── File helpers ───────────────────────────────────────────────────────────

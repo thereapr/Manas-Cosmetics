@@ -17,8 +17,8 @@ import java.util.Optional;
  * {@link BBModelData} from the client-side {@link ClientCosmeticModelCache}
  * and drawing it with {@link BBModelRenderer}.
  *
- * <p>Auto-scaling: the model is uniformly scaled so its height is at most
- * {@value #MAX_HEIGHT_BLOCKS} blocks tall, preventing oversized pets.</p>
+ * The model is rendered at its natural Blockbench scale; only the {@code scale}
+ * field from the cosmetic's JSON config is applied (no auto-shrink).
  */
 public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity> {
 
@@ -58,9 +58,6 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         CosmeticDefinition def = defOpt.get();
 
         // ── Vanilla mob rendering path ─────────────────────────────────────────
-        // When mob_type is set, delegate entirely to the vanilla EntityRenderer for
-        // that mob type.  The display mob handles its own rotations internally, so
-        // we must NOT apply an extra yaw rotation here.
         if (def.mobType() != null && !def.mobType().isEmpty()) {
             MobPetRenderer.render(entity, def.mobType(), entityYaw, partialTick,
                     poseStack, bufferSource, packedLight);
@@ -82,13 +79,10 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
         poseStack.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(180f - bodyYaw)));
 
-        // Auto-scale the model so its vertical extent fits within MAX_HEIGHT_BLOCKS.
-        float autoScale = computeAutoScale(model);
+        // Apply only the user-defined scale (offset and rotation ignored for pet slot).
+        float[] s = def.scale();
+        poseStack.scale(s[0], s[1], s[2]);
 
-        // Apply user-defined scale/offset/rotation from the cosmetic definition on top.
-        applyDefTransformWithAutoScale(poseStack, def, autoScale);
-
-        // Keyframe times in .bbmodel are in seconds; convert from ticks (20/s).
         float animTime = (entity.tickCount + partialTick) / 20.0f;
         BBModelRenderer.render(poseStack, bufferSource, packedLight, model, texture, animTime);
 

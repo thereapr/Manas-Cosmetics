@@ -126,6 +126,40 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
 
             poseStack.popPose();
         }
+
+        // ── Per-weapon-type cosmetics ──────────────────────────────────────────
+        // Each weapon type can independently have a cosmetic equipped; shown only
+        // while the player holds a matching item (or force-equip is active).
+        Map<WeaponType, String> weaponEquipped = player.isLocalPlayer()
+            ? state.getAllEquippedWeapon()
+            : state.getAllEquippedWeaponForPlayer(uuid);
+
+        ItemStack heldMainHand = player.getMainHandItem();
+
+        for (Map.Entry<WeaponType, String> wEntry : weaponEquipped.entrySet()) {
+            WeaponType wt = wEntry.getKey();
+            String id = wEntry.getValue();
+
+            Optional<CosmeticDefinition> defOpt = modelCache.getDefinition(id);
+            Optional<BBModelData> modelOpt = modelCache.getModel(id);
+            if (defOpt.isEmpty() || modelOpt.isEmpty()) continue;
+
+            CosmeticDefinition def = defOpt.get();
+
+            boolean force = player.isLocalPlayer()
+                ? state.isForceEquipWeapon(wt)
+                : state.isForceEquipWeaponForPlayer(uuid, wt);
+            if (!force && !WeaponTypeChecker.matches(heldMainHand, wt)) continue;
+
+            ResourceLocation texture = getOrUploadTexture(id, modelOpt.get());
+
+            poseStack.pushPose();
+            applyHandTransform(poseStack, player, this.getParentModel());
+            applyDefTransform(poseStack, def);
+            float animTime = ageInTicks / 20.0f;
+            BBModelRenderer.render(poseStack, bufferSource, packedLight, modelOpt.get(), texture, animTime);
+            poseStack.popPose();
+        }
     }
 
     // ── Slot attachment transforms ─────────────────────────────────────────────
