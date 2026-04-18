@@ -60,6 +60,14 @@ def patchTensuraJar(Project proj, String version) {
 allprojects {
     group = rootProject.maven_group
     version = rootProject.mod_version
+
+    // tensura-reincarnated's JAR declares a fabric.mod.json that references
+    // tensura.accesswidener, but the file is absent — Loom's ModProcessor crashes.
+    // Exclude the raw artifact from every configuration; non-common subprojects
+    // inject a patched copy via modLocalRuntime (see patchTensuraJar below).
+    configurations.all {
+        exclude group: "maven.modrinth", module: "tensura-reincarnated"
+    }
 }
 
 subprojects {
