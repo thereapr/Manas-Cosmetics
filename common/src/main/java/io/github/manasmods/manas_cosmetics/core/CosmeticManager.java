@@ -142,8 +142,8 @@ public final class CosmeticManager {
                   magic_staff/     ←   shown when holding a magic staff
                   any/             ←   shown with any weapon
                 shield/            ← off-hand shield slot cosmetics
-                grimoire/          ← off-hand grimoire slot cosmetics
-                magic_staff/       ← main-hand magic staff slot cosmetics
+                grimoire/          ← grimoire cosmetics (generated as slot="weapon", weapon_type="grimoire")
+                magic_staff/       ← magic staff cosmetics (generated as slot="weapon", weapon_type="magic_staff")
 
             ──────────────────────────────────────────────────────────────────────
             Cosmetic .json File Structure
@@ -329,14 +329,15 @@ public final class CosmeticManager {
 
             Sword Weapon Overlay (models/weapon/sword/icicle_blade.bbmodel)
             ───────────────────────────────────────────────────────────────
+            Weapon cosmetics inherit the held-item transform, so generated
+            sidecars do not include offset or rotation for any weapon slot.
             {
               "id":           "manas_cosmetics:icicle_blade",
               "display_name": "Icicle Blade",
               "slot":         "weapon",
               "weapon_type":  "sword",
               "model":        "models/weapon/sword/icicle_blade.bbmodel",
-              "scale":        [1.0, 1.0, 1.0],
-              "offset":       [0.0, 0.0, 0.0]
+              "scale":        [1.0, 1.0, 1.0]
             }
 
             Floating Hat (models/above_head/wizard_hat.bbmodel)
@@ -587,6 +588,18 @@ public final class CosmeticManager {
     private static String buildSidecarJson(
         String id, String displayName, CosmeticSlot slot, WeaponType weaponType, String modelPath
     ) {
+        // Staves and grimoires are emitted as weapons with the corresponding weapon_type
+        // so the JSON surface is unified across all weapon-style cosmetics.
+        CosmeticSlot emittedSlot = slot;
+        WeaponType   emittedType = weaponType;
+        if (slot == CosmeticSlot.MAGIC_STAFF) {
+            emittedSlot = CosmeticSlot.WEAPON;
+            emittedType = WeaponType.MAGIC_STAFF;
+        } else if (slot == CosmeticSlot.GRIMOIRE) {
+            emittedSlot = CosmeticSlot.WEAPON;
+            emittedType = WeaponType.GRIMOIRE;
+        }
+
         String scale, offset, rotation;
         switch (slot) {
             case HELMET -> {
@@ -620,14 +633,14 @@ public final class CosmeticManager {
         sb.append("{\n");
         sb.append("  \"id\":                  \"").append(id).append("\",\n");
         sb.append("  \"display_name\":        \"").append(displayName).append("\",\n");
-        sb.append("  \"slot\":                \"").append(slot.getId()).append("\",\n");
-        if (slot == CosmeticSlot.WEAPON && weaponType != WeaponType.ANY) {
-            sb.append("  \"weapon_type\":         \"").append(weaponType.getId()).append("\",\n");
+        sb.append("  \"slot\":                \"").append(emittedSlot.getId()).append("\",\n");
+        if (emittedSlot == CosmeticSlot.WEAPON && emittedType != WeaponType.ANY) {
+            sb.append("  \"weapon_type\":         \"").append(emittedType.getId()).append("\",\n");
         }
         sb.append("  \"force_equip_allowed\": true,\n");
         sb.append("  \"model\":               \"").append(modelPath).append("\",\n");
-        if (slot == CosmeticSlot.PET) {
-            // Pets render with their own transform logic; offset/rotation are ignored at runtime.
+        if (emittedSlot.isWeaponSlot()) {
+            // Weapons follow the held-item transform; offset and rotation are not editable.
             sb.append("  \"scale\":               ").append(scale).append("\n");
         } else {
             sb.append("  \"scale\":               ").append(scale).append(",\n");
