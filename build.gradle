@@ -299,9 +299,10 @@ subprojects {
             into "${projectDir}/run/mods"
             // Keep the run/mods directory in .gitignore so the JAR isn't committed.
         }
-        tasks.whenTaskAdded { task ->
-            if (task.name == 'runClient' || task.name == 'runServer') {
-                task.dependsOn 'copyTensuraToRunMods'
+        afterEvaluate {
+            ['runClient', 'runServer'].each { runTaskName ->
+                def runTask = tasks.findByName(runTaskName)
+                if (runTask) runTask.dependsOn 'copyTensuraToRunMods'
             }
         }
     }
