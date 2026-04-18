@@ -3,7 +3,7 @@ loom {
 }
 
 dependencies {
-
+    modCompileOnly "maven.modrinth:tensura-reincarnated:$tensura_version"
 }
 
 sourceSets {
