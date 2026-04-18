@@ -72,6 +72,14 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
             for (float v : d.rotation()) buf.writeFloat(v);
             // Empty string means no mob_type (preserves backward compat)
             buf.writeUtf(d.mobType() != null ? d.mobType() : "");
+            // Aura colour: presence flag + 3 ints when present
+            boolean hasAuraColor = d.auraColor() != null && d.auraColor().length >= 3;
+            buf.writeBoolean(hasAuraColor);
+            if (hasAuraColor) {
+                buf.writeVarInt(d.auraColor()[0]);
+                buf.writeVarInt(d.auraColor()[1]);
+                buf.writeVarInt(d.auraColor()[2]);
+            }
             buf.writeUtf(e.bbModelJson());
         }
     }
@@ -91,6 +99,10 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
             float[] rotation = {buf.readFloat(), buf.readFloat(), buf.readFloat()};
             String mobTypeRaw      = buf.readUtf();
             String mobType         = mobTypeRaw.isEmpty() ? null : mobTypeRaw;
+            int[] auraColor        = null;
+            if (buf.readBoolean()) {
+                auraColor = new int[]{buf.readVarInt(), buf.readVarInt(), buf.readVarInt()};
+            }
             String bbModelJson     = buf.readUtf();
 
             var slot = io.github.manasmods.manas_cosmetics.api.CosmeticSlot.fromId(slotId)
@@ -98,7 +110,7 @@ public final class SyncCosmeticRegistryPayload implements CustomPacketPayload {
             var weaponType = io.github.manasmods.manas_cosmetics.api.WeaponType.fromId(weaponTypeId);
 
             CosmeticDefinition def = new CosmeticDefinition(
-                id, displayName, slot, weaponType, forceEquip, modelPath, scale, offset, rotation, mobType);
+                id, displayName, slot, weaponType, forceEquip, modelPath, scale, offset, rotation, mobType, auraColor);
             entries.add(new Entry(def, bbModelJson));
         }
         return new SyncCosmeticRegistryPayload(entries);

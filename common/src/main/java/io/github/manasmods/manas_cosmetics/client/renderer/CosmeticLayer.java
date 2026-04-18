@@ -77,10 +77,19 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             if (slot == CosmeticSlot.PET) continue;
 
             // AURA cosmetics use AuraRenderer with procedurally generated geometry.
-            // They have no BBModel, so skip the model lookup entirely.
+            // They have no BBModel, so skip the model lookup entirely. The optional
+            // aura_color field on the definition tints the rings.
             if (slot == CosmeticSlot.AURA) {
+                int[] color = modelCache.getDefinition(cosmeticId.get())
+                    .map(CosmeticDefinition::auraColor)
+                    .orElse(null);
                 poseStack.pushPose();
-                AuraRenderer.render(poseStack, bufferSource, packedLight, ageInTicks / 20.0f);
+                if (color != null && color.length >= 3) {
+                    AuraRenderer.render(poseStack, bufferSource, packedLight,
+                                        ageInTicks / 20.0f, color[0], color[1], color[2]);
+                } else {
+                    AuraRenderer.render(poseStack, bufferSource, packedLight, ageInTicks / 20.0f);
+                }
                 poseStack.popPose();
                 continue;
             }

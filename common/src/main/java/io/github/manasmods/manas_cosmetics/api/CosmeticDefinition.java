@@ -20,7 +20,9 @@ public record CosmeticDefinition(
     float[] rotation,
     /** When non-null, this pet is rendered using the vanilla mob renderer for this entity type
      *  (e.g. {@code "minecraft:pig"}) scaled down to 1 block, instead of the BBModel. */
-    @Nullable String mobType
+    @Nullable String mobType,
+    /** RGB tint [0-255] applied to AURA-slot cosmetics. Ignored for other slots. */
+    @Nullable int[] auraColor
 ) {
     public static CosmeticDefinition fromJson(JsonObject json) {
         String id = json.get("id").getAsString();
@@ -63,7 +65,21 @@ public record CosmeticDefinition(
 
         String mobType = json.has("mob_type") ? json.get("mob_type").getAsString() : null;
 
-        return new CosmeticDefinition(id, displayName, slot, weaponType, forceEquipAllowed, modelPath, scale, offset, rotation, mobType);
+        int[] auraColor = null;
+        if (json.has("aura_color")) {
+            var arr = json.getAsJsonArray("aura_color");
+            auraColor = new int[]{
+                clamp255(arr.get(0).getAsInt()),
+                clamp255(arr.get(1).getAsInt()),
+                clamp255(arr.get(2).getAsInt())
+            };
+        }
+
+        return new CosmeticDefinition(id, displayName, slot, weaponType, forceEquipAllowed, modelPath, scale, offset, rotation, mobType, auraColor);
+    }
+
+    private static int clamp255(int v) {
+        return v < 0 ? 0 : (v > 255 ? 255 : v);
     }
 
     /** Namespace portion of the id, e.g. "manas_cosmetics" from "manas_cosmetics:icicle_wings". */
