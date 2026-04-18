@@ -65,11 +65,10 @@ public final class AuraRenderer {
     };
 
     // ── Default aura colour (deep blue-violet) ─────────────────────────────────
-    // TODO: expose per-cosmetic colour + density in a later pass.
 
-    private static final int COL_R = 140;
-    private static final int COL_G =  80;
-    private static final int COL_B = 255;
+    private static final int DEFAULT_COL_R = 140;
+    private static final int DEFAULT_COL_G =  80;
+    private static final int DEFAULT_COL_B = 255;
 
     // ── Shared 1×1 white texture ───────────────────────────────────────────────
 
@@ -89,6 +88,20 @@ public final class AuraRenderer {
                               MultiBufferSource bufferSource,
                               int packedLight,
                               float animTime) {
+        render(poseStack, bufferSource, packedLight, animTime,
+               DEFAULT_COL_R, DEFAULT_COL_G, DEFAULT_COL_B);
+    }
+
+    /**
+     * Renders the aura with a caller-supplied RGB tint (each channel 0-255).
+     * Used by {@link CosmeticLayer} to honour the {@code aura_color} field
+     * in the equipped aura cosmetic's definition.
+     */
+    public static void render(PoseStack poseStack,
+                              MultiBufferSource bufferSource,
+                              int packedLight,
+                              float animTime,
+                              int colR, int colG, int colB) {
 
         ResourceLocation tex = ensureWhiteTexture();
         VertexConsumer buf = bufferSource.getBuffer(RenderType.entityTranslucentCull(tex));
@@ -107,7 +120,8 @@ public final class AuraRenderer {
             float halfThick = THICKNESS * 0.5f;
 
             renderRingLayer(buf, pose, entry, packedLight,
-                            yCenter, angleDeg, ir, or, halfThick, alpha);
+                            yCenter, angleDeg, ir, or, halfThick, alpha,
+                            colR, colG, colB);
         }
     }
 
@@ -122,7 +136,8 @@ public final class AuraRenderer {
                                         float innerR,
                                         float outerR,
                                         float halfThick,
-                                        float alpha) {
+                                        float alpha,
+                                        int colR, int colG, int colB) {
         int a    = Math.round(alpha * 255);
         float yTop = yCenter + halfThick;
         float yBot = yCenter - halfThick;
@@ -144,7 +159,7 @@ public final class AuraRenderer {
             float ox1 = outerR * sin1, oz1 = outerR * cos1;
 
             // Top face (+Y normal) — visible when camera is above the ring
-            quad(buf, pose, entry, light, a,
+            quad(buf, pose, entry, light, a, colR, colG, colB,
                  ix0, yTop, iz0,
                  ox0, yTop, oz0,
                  ox1, yTop, oz1,
@@ -152,7 +167,7 @@ public final class AuraRenderer {
                  0f, 1f, 0f);
 
             // Bottom face (-Y normal) — visible when camera is below the ring
-            quad(buf, pose, entry, light, a,
+            quad(buf, pose, entry, light, a, colR, colG, colB,
                  ix1, yBot, iz1,
                  ox1, yBot, oz1,
                  ox0, yBot, oz0,
@@ -163,7 +178,7 @@ public final class AuraRenderer {
             float midA = a0 + segStep * 0.5f;
             float nx   = (float) Math.sin(midA);
             float nz   = (float) Math.cos(midA);
-            quad(buf, pose, entry, light, a,
+            quad(buf, pose, entry, light, a, colR, colG, colB,
                  ox0, yBot, oz0,
                  ox1, yBot, oz1,
                  ox1, yTop, oz1,
@@ -178,31 +193,32 @@ public final class AuraRenderer {
                              PoseStack.Pose entry,
                              int light,
                              int alpha,
+                             int colR, int colG, int colB,
                              float x0, float y0, float z0,
                              float x1, float y1, float z1,
                              float x2, float y2, float z2,
                              float x3, float y3, float z3,
                              float nx, float ny, float nz) {
         buf.addVertex(pose, x0, y0, z0)
-           .setColor(COL_R, COL_G, COL_B, alpha)
+           .setColor(colR, colG, colB, alpha)
            .setUv(0f, 0f)
            .setOverlay(OverlayTexture.NO_OVERLAY)
            .setLight(light)
            .setNormal(entry, nx, ny, nz);
         buf.addVertex(pose, x1, y1, z1)
-           .setColor(COL_R, COL_G, COL_B, alpha)
+           .setColor(colR, colG, colB, alpha)
            .setUv(1f, 0f)
            .setOverlay(OverlayTexture.NO_OVERLAY)
            .setLight(light)
            .setNormal(entry, nx, ny, nz);
         buf.addVertex(pose, x2, y2, z2)
-           .setColor(COL_R, COL_G, COL_B, alpha)
+           .setColor(colR, colG, colB, alpha)
            .setUv(1f, 1f)
            .setOverlay(OverlayTexture.NO_OVERLAY)
            .setLight(light)
            .setNormal(entry, nx, ny, nz);
         buf.addVertex(pose, x3, y3, z3)
-           .setColor(COL_R, COL_G, COL_B, alpha)
+           .setColor(colR, colG, colB, alpha)
            .setUv(0f, 1f)
            .setOverlay(OverlayTexture.NO_OVERLAY)
            .setLight(light)

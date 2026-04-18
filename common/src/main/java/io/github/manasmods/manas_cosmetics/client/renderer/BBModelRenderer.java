@@ -66,6 +66,12 @@ public final class BBModelRenderer {
         if (rot[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(-rot[1])));
         if (rot[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(rot[2])));
 
+        // Animated scale (1,1,1 = identity)
+        float[] sc = interpolateScale(model, bone.name(), animTime);
+        if (sc[0] != 1f || sc[1] != 1f || sc[2] != 1f) {
+            ps.scale(sc[0], sc[1], sc[2]);
+        }
+
         // Animated position offset
         float[] pos = interpolatePosition(model, bone.name(), animTime);
         if (pos[0] != 0 || pos[1] != 0 || pos[2] != 0) {
@@ -179,6 +185,17 @@ public final class BBModelRenderer {
             if (result != zero) return result;
         }
         return zero;
+    }
+
+    private static float[] interpolateScale(BBModelData model, String boneName, float time) {
+        float[] one = {1, 1, 1};
+        for (BBModelData.Animation anim : model.animations().values()) {
+            BBModelData.BoneAnimation boneAnim = anim.boneAnimations().get(boneName);
+            if (boneAnim == null) continue;
+            float[] result = interpolate(boneAnim.scaleFrames(), time, one);
+            if (result != one) return result;
+        }
+        return one;
     }
 
     private static float[] interpolate(List<BBModelData.Keyframe> frames, float time, float[] fallback) {

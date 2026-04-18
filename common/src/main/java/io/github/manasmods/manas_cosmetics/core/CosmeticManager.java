@@ -53,6 +53,7 @@ public final class CosmeticManager {
             .resolve("manas_cosmetics");
         ensureDirectories();
         BuiltinPetModels.extractIfNeeded(configRoot);
+        BuiltinAuras.extractIfNeeded(configRoot);
         writeReadme();
         reload();
     }
@@ -445,7 +446,10 @@ public final class CosmeticManager {
 
             BBModelData modelData;
 
-            if (def.mobType() != null && !def.mobType().isEmpty()) {
+            if (def.slot() == CosmeticSlot.AURA) {
+                // AURA cosmetics are procedurally rendered — no model file required.
+                modelData = BBModelData.empty();
+            } else if (def.mobType() != null && !def.mobType().isEmpty()) {
                 // Vanilla mob pet: the BBModel is optional.  If one exists we still
                 // load it (could be used as a fallback), otherwise use an empty placeholder.
                 Path modelPath = configRoot.resolve(def.modelPath());
