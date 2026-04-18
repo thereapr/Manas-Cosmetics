@@ -1,5 +1,3 @@
-import java.util.zip.*
-
 plugins {
     id 'dev.architectury.loom' version '1.7-SNAPSHOT' apply false
     id 'architectury-plugin' version '3.4-SNAPSHOT'
@@ -14,60 +12,9 @@ architectury {
     minecraft = project.minecraft_version
 }
 
-/**
- * Downloads tensura-reincarnated and strips the broken "accessWidener" field from
- * its fabric.mod.json so Loom's ModProcessor can remap the JAR without crashing.
- * Runs at configuration time; result is cached by file timestamp.
- */
-def patchTensuraJar(Project proj, String version) {
-    def detached = proj.configurations.detachedConfiguration(
-        proj.dependencies.create("maven.modrinth:tensura-reincarnated:${version}")
-    )
-    def rawJar = detached.resolvedConfiguration.resolvedArtifacts.first().file
-    def patchDir = new File(proj.layout.buildDirectory.asFile.get(), "patched-tensura")
-    def patched  = new File(patchDir, "tensura-patched-${version}.jar")
-
-    if (patched.exists() && patched.lastModified() >= rawJar.lastModified()) return patched
-
-    patchDir.mkdirs()
-    new FileInputStream(rawJar).withCloseable { fis ->
-        new ZipInputStream(fis).withCloseable { zis ->
-            new FileOutputStream(patched).withCloseable { fos ->
-                new ZipOutputStream(fos).withCloseable { zos ->
-                    def entry
-                    while ((entry = zis.nextEntry) != null) {
-                        if (entry.name == "fabric.mod.json") {
-                            def content = new String(zis.readAllBytes(), "UTF-8")
-                                .replaceAll(',?\\s*"accessWidener"\\s*:\\s*"[^"]*"', '')
-                            def bytes = content.getBytes("UTF-8")
-                            zos.putNextEntry(new ZipEntry("fabric.mod.json"))
-                            zos.write(bytes)
-                        } else if (entry.isDirectory()) {
-                            zos.putNextEntry(new ZipEntry(entry.name))
-                        } else {
-                            zos.putNextEntry(new ZipEntry(entry.name))
-                            zos.write(zis.readAllBytes())
-                        }
-                        zos.closeEntry()
-                    }
-                }
-            }
-        }
-    }
-    return patched
-}
-
 allprojects {
     group = rootProject.maven_group
     version = rootProject.mod_version
-
-    // tensura-reincarnated's JAR declares a fabric.mod.json that references
-    // tensura.accesswidener, but the file is absent — Loom's ModProcessor crashes.
-    // Exclude the raw artifact from every configuration; non-common subprojects
-    // inject a patched copy via modLocalRuntime (see patchTensuraJar below).
-    configurations.all {
-        exclude group: "maven.modrinth", module: "tensura-reincarnated"
-    }
 }
 
 subprojects {
@@ -336,11 +283,26 @@ subprojects {
         }
         build.dependsOn copyJar
 
-        // tensura-reincarnated is needed at runtime for weapon-type dev testing.
-        // Its JAR has a broken fabric.mod.json (missing accessWidener file), so we
-        // patch it at configuration time before Loom's ModProcessor touches it.
+        // tensura-reincarnated has a broken fabric.mod.json (references a missing
+        // tensura.accesswidener), so it cannot be added to any mod* Loom configuration
+        // without crashing ModProcessor.  Instead we download it into a plain
+        // Gradle configuration and copy it into the run/mods directory so FML/
+        // FabricLoader discovers it at launch without Loom ever touching the JAR.
+        configurations {
+            tensuraRuntime { canBeResolved = true; canBeConsumed = false }
+        }
         dependencies {
-            modLocalRuntime files(patchTensuraJar(project, rootProject.tensura_version))
+            tensuraRuntime "maven.modrinth:tensura-reincarnated:$rootProject.tensura_version"
+        }
+        tasks.register('copyTensuraToRunMods', Copy) {
+            from configurations.tensuraRuntime
+            into "${projectDir}/run/mods"
+            // Keep the run/mods directory in .gitignore so the JAR isn't committed.
+        }
+        tasks.whenTaskAdded { task ->
+            if (task.name == 'runClient' || task.name == 'runServer') {
+                task.dependsOn 'copyTensuraToRunMods'
+            }
         }
     }
 }
