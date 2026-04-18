@@ -3,7 +3,7 @@ loom {
 }
 
 dependencies {
-
+    modLocalRuntime "maven.modrinth:tensura-reincarnated:$tensura_version"
 }
 
 remapJar {

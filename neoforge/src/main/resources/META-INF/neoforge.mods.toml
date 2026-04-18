@@ -34,5 +34,12 @@ versionRange = "[13.0.8,)"
 ordering = "AFTER"
 side = "BOTH"
 
+[[dependencies.manas_cosmetics]]
+modId = "tensura"
+type = "optional"
+versionRange = "[2.0,)"
+ordering = "NONE"
+side = "BOTH"
+
 [[mixins]]
 config = "manas_cosmetics.mixins.json"

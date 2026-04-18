@@ -1,4 +1,20 @@
 {
   "replace": false,
-  "values": []
+  "values": [
+    "tensura:wood_scythe",
+    "tensura:stone_scythe",
+    "tensura:iron_scythe",
+    "tensura:gold_scythe",
+    "tensura:diamond_scythe",
+    "tensura:netherite_scythe",
+    "tensura:silver_scythe",
+    "tensura:demon_steel_scythe",
+    "tensura:low_magisteel_scythe",
+    "tensura:high_magisteel_scythe",
+    "tensura:pure_magisteel_scythe",
+    "tensura:orichalcum_scythe",
+    "tensura:mithril_scythe",
+    "tensura:adamantite_scythe",
+    "tensura:hihi_irokane_scythe"
+  ]
 }
