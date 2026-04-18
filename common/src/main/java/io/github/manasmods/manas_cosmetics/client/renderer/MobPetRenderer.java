@@ -20,7 +20,8 @@ import java.util.Map;
 
 /**
  * Renders a pet cosmetic by delegating to the vanilla {@link EntityRenderer} of the
- * target mob type, scaled uniformly so the mob's hitbox height equals exactly 1 block.
+ * target mob type. No scaling is applied — the mob renders at its natural vanilla
+ * size, texture, and model.
  *
  * <h3>How it works</h3>
  * <ol>
@@ -31,9 +32,8 @@ import java.util.Map;
  *       {@link PetCosmeticEntity} to the display mob so all vanilla animations
  *       (walking, idle, head-turning) play correctly without the display mob being
  *       ticked by the world.</li>
- *   <li>The PoseStack is uniformly scaled by {@code 1 / mobHeight} before delegating
- *       to the vanilla renderer, producing a 1-block-tall result regardless of how
- *       large the source mob normally is.</li>
+ *   <li>The vanilla renderer is invoked directly, producing output identical to
+ *       what the mob would look like in the world.</li>
  * </ol>
  *
  * <h3>Animation notes</h3>
@@ -41,9 +41,7 @@ import java.util.Map;
  * "position" (phase) and "speed" value updated once per tick.  Because the display
  * mob is never ticked, these private fields are copied from the pet entity each frame
  * via reflection.  All other per-frame animation inputs (tickCount, body/head yaw)
- * are public fields and are simply assigned directly.  The net result is that leg
- * swinging, idle bobs, and any other vanilla animations behave identically to the
- * full-size mob — just rendered smaller.
+ * are public fields and are simply assigned directly.
  */
 @SuppressWarnings("unchecked")
 public final class MobPetRenderer {
@@ -93,8 +91,7 @@ public final class MobPetRenderer {
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /**
-     * Renders the pet using the vanilla renderer for {@code mobTypeId}, scaled so the
-     * mob's collision-box height equals 1 block.
+     * Renders the pet using the vanilla renderer for {@code mobTypeId} at its natural size.
      *
      * @param entity      the live pet entity (provides position / animation state)
      * @param mobTypeId   registry key of the target mob, e.g. {@code "minecraft:pig"}
@@ -115,17 +112,6 @@ public final class MobPetRenderer {
 
         syncState(entity, displayMob);
 
-        // Scale so the mob's hitbox height maps to exactly 1 block
-        float mobHeight = displayMob.getType().getHeight();
-        float mobWidth  = displayMob.getType().getWidth();
-        float scaleH = mobHeight > 0.001f ? 1.0f / mobHeight : 1.0f;
-        float scaleW = mobWidth  > 0.001f ? 2.0f / mobWidth  : 1.0f;
-        // Most restrictive axis wins; never upscale beyond 1.0
-        float scale = Math.min(1.0f, Math.min(scaleH, scaleW));
-
-        poseStack.pushPose();
-        poseStack.scale(scale, scale, scale);
-
         EntityRenderer<Mob> renderer =
                 (EntityRenderer<Mob>) Minecraft.getInstance()
                         .getEntityRenderDispatcher()
@@ -134,8 +120,6 @@ public final class MobPetRenderer {
         // Call the renderer directly (not via dispatcher) to avoid double-shadow
         // rendering and name-tag logic that belongs to the pet entity, not the proxy.
         renderer.render(displayMob, entityYaw, partialTick, poseStack, bufferSource, packedLight);
-
-        poseStack.popPose();
     }
 
     /**
