@@ -2,10 +2,6 @@ loom {
     accessWidenerPath = project(":common").loom.accessWidenerPath
 }
 
-dependencies {
-    modLocalRuntime "maven.modrinth:tensura-reincarnated:$tensura_version"
-}
-
 remapJar {
     atAccessWideners.add("${project.archives_name}.accesswidener")
 }
