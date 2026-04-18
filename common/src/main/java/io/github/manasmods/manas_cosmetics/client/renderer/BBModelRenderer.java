@@ -60,10 +60,11 @@ public final class BBModelRenderer {
         float pz = bone.pivot()[2] * UNITS_TO_BLOCKS;
         ps.translate(px, py, pz);
 
-        // Animated rotation
+        // Animated rotation. Blockbench stores rotations in a right-handed system
+        // that matches JOML's, so all three axes are applied with their raw values.
         float[] rot = interpolateRotation(model, bone.name(), animTime, bone.rotation());
         if (rot[0] != 0) ps.mulPose(new org.joml.Quaternionf().rotateX((float) Math.toRadians(rot[0])));
-        if (rot[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(-rot[1])));
+        if (rot[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(rot[1])));
         if (rot[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(rot[2])));
 
         // Animated position offset
@@ -102,7 +103,7 @@ public final class BBModelRenderer {
 
         float[] rot = cube.rotation();
         if (rot[0] != 0) ps.mulPose(new org.joml.Quaternionf().rotateX((float) Math.toRadians(rot[0])));
-        if (rot[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(-rot[1])));
+        if (rot[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(rot[1])));
         if (rot[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(rot[2])));
         ps.translate(-px, -py, -pz);
 
