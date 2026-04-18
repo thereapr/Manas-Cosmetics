@@ -193,17 +193,17 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
             float sign = isRight ? 1f : -1f;
             // +Y is toward the feet in the post-scale(-1,-1,1) render space, so +0.625
             // reaches the hand (10 model units below the shoulder pivot).
-            ps.translate(sign / 16f, 0.625f, 0f);
+            ps.translate(sign * -0.03f, 0.625f, 0f);
             // Vanilla thirdperson_righthand: Y=-90, Z=+55. In the post-scale(-1,-1,1) render
             // space +Y points toward feet, so Z=+55 tilts blade down; Z=+125 (=180-55) tilts
             // blade up, matching the iron sword's blade-up appearance.
             // The axial rotation rolls the model 90° around the blade's own length axis
             // (direction (-0.819, -0.574, 0) in render space after Y+Z) without disturbing
             // the upward tilt, so the edge faces up/down rather than left/right.
-            ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -30f)));
-            ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 140f)));
+            ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -35f)));
+            ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 145f)));
             ps.mulPose(new org.joml.Quaternionf().rotationAxis(
-                (float) Math.toRadians(sign * 90f), sign * -0.819f, -0.574f, 0f));
+                    (float) Math.toRadians(sign * 90f), sign * -0.819f, -0.574f, 0f));
         } else {
             // Fallback for non-humanoid models
             ps.translate(player.getMainArm() == HumanoidArm.RIGHT ? 0.3 : -0.3, -0.4, 0.1);
@@ -224,7 +224,7 @@ public final class CosmeticLayer<T extends Player, M extends EntityModel<T>>
     // ── Texture management ─────────────────────────────────────────────────────
 
     /** Package-visible so {@link PetCosmeticRenderer} can share the same cache. */
-    static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
+    public static ResourceLocation getOrUploadTexture(String id, BBModelData model) {
         return TEXTURE_CACHE.computeIfAbsent(id, k -> {
             ResourceLocation loc = ResourceLocation.fromNamespaceAndPath(
                 "manas_cosmetics", "dynamic/" + k.replace(':', '/'));

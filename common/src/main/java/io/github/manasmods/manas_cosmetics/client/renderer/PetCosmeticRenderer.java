@@ -22,10 +22,12 @@ import java.util.Optional;
  */
 public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity> {
 
-    /** Maximum height of a rendered pet in blocks. */
+    /** Maximum dimensions of a rendered pet: 1 block tall, 2 blocks wide/deep. */
     private static final float MAX_HEIGHT_BLOCKS = 1.0f;
-    /** In BBModel units (1 block = 16 units). */
+    private static final float MAX_WIDTH_BLOCKS  = 2.0f;
+    /** Same limits expressed in BBModel units (1 block = 16 units). */
     private static final float MAX_HEIGHT_UNITS = MAX_HEIGHT_BLOCKS * 16f;
+    private static final float MAX_WIDTH_UNITS  = MAX_WIDTH_BLOCKS  * 16f;
     private static final float UNITS_TO_BLOCKS = 1f / 16f;
 
     public PetCosmeticRenderer(EntityRendererProvider.Context context) {
@@ -61,7 +63,7 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         // we must NOT apply an extra yaw rotation here.
         if (def.mobType() != null && !def.mobType().isEmpty()) {
             MobPetRenderer.render(entity, def.mobType(), entityYaw, partialTick,
-                                  poseStack, bufferSource, packedLight);
+                    poseStack, bufferSource, packedLight);
             super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
             return;
         }
@@ -99,19 +101,29 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
     // ── Auto-scale computation ─────────────────────────────────────────────────
 
     /**
-     * Computes a uniform scale factor so the model's height fits within
-     * {@value #MAX_HEIGHT_UNITS} BBModel units.
+     * Computes a uniform scale factor that fits the model within the pet size envelope:
+     * at most {@value #MAX_HEIGHT_BLOCKS} block tall, {@value #MAX_WIDTH_BLOCKS} blocks wide,
+     * and {@value #MAX_WIDTH_BLOCKS} blocks deep.  The model is never upscaled.
      */
     private static float computeAutoScale(BBModelData model) {
         float[] minMax = {Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE,
-                          -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
+                -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
         for (BBModelData.Bone bone : model.bones()) {
             expandBounds(minMax, bone);
         }
         if (minMax[1] == Float.MAX_VALUE) return 1.0f; // No cubes found
-        float height = minMax[4] - minMax[1]; // height in BBModel units
-        if (height <= 0 || height <= MAX_HEIGHT_UNITS) return 1.0f;
-        return MAX_HEIGHT_UNITS / height;
+
+        float height = minMax[4] - minMax[1]; // Y extent (BBModel units)
+        float width  = minMax[3] - minMax[0]; // X extent
+        float depth  = minMax[5] - minMax[2]; // Z extent
+
+        // Per-axis scale to fit within the envelope
+        float scaleH = height > 0 ? MAX_HEIGHT_UNITS / height : 1.0f;
+        float scaleW = width  > 0 ? MAX_WIDTH_UNITS  / width  : 1.0f;
+        float scaleD = depth  > 0 ? MAX_WIDTH_UNITS  / depth  : 1.0f;
+
+        // Use the most restrictive axis; never upscale
+        return Math.min(1.0f, Math.min(scaleH, Math.min(scaleW, scaleD)));
     }
 
     private static void expandBounds(float[] b, BBModelData.Bone bone) {
@@ -140,9 +152,7 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         ps.translate(o[0] * UNITS_TO_BLOCKS, o[1] * UNITS_TO_BLOCKS, o[2] * UNITS_TO_BLOCKS);
         // Combine user-defined scale with auto-scale
         ps.scale(s[0] * autoScale, s[1] * autoScale, s[2] * autoScale);
-        // Skip X rotation — the [180,0,0] default in CosmeticDefinition is for player-attached
-        // slots and flips pet entities upside down. Pet models are expected to stand upright;
-        // the renderer's yaw rotation already handles the correct facing direction.
+        if (r[0] != 0) ps.mulPose(new org.joml.Quaternionf().rotateX((float) Math.toRadians(r[0])));
         if (r[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(r[1])));
         if (r[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(r[2])));
     }
