@@ -35,9 +35,21 @@ import java.util.Optional;
  * Handles both equipping paths:
  *   - Slot-based:   ClientCosmeticState.equipped      (CosmeticSlot -> id)
  *   - Per-weapon:   ClientCosmeticState.equippedWeapon (WeaponType -> id, used by wardrobe)
+ *
+ * First-person positioning mirrors vanilla item-in-hand rendering so the BBModel
+ * appears at the same place and relative size a handheld vanilla item would: the
+ * arm anchor from {@code ItemInHandRenderer.applyItemArmTransform} plus the
+ * {@code handheld.json firstperson_*hand} display transform (translate + rotate + 0.68 scale).
  */
 @Mixin(ItemInHandRenderer.class)
 public class MixinFirstPersonCosmeticRenderer {
+
+    /** Vanilla {@code handheld.json firstperson_righthand} display translation, in block units. */
+    private static final float HANDHELD_TX = 1.13f / 16f;
+    private static final float HANDHELD_TY = 3.2f  / 16f;
+    private static final float HANDHELD_TZ = 1.13f / 16f;
+    /** Vanilla {@code handheld.json} first-person scale. Without this the BBModel fills the view frustum. */
+    private static final float HANDHELD_SCALE = 0.68f;
 
     /** Renders weapon cosmetics after the vanilla hands have been drawn. */
     @Inject(method = "renderHandsWithItems", at = @At("TAIL"))
@@ -90,9 +102,9 @@ public class MixinFirstPersonCosmeticRenderer {
     }
 
     /**
-     * Places the model at the main-hand first-person anchor (matches vanilla
-     * {@code ItemInHandRenderer.applyItemArmTransform} for a fully-equipped item)
-     * and applies the cosmetic definition's transform.
+     * Places the model at the main-hand first-person anchor (vanilla
+     * {@code applyItemArmTransform} + {@code handheld.json} display transform) and
+     * applies the cosmetic definition's own transform on top.
      *
      * @param fullDefTransform when {@code true}, applies offset+rotation+scale from the
      *                         definition (per-weapon-type path). When {@code false}, only
@@ -115,9 +127,13 @@ public class MixinFirstPersonCosmeticRenderer {
         poseStack.pushPose();
         // Main-hand anchor (vanilla applyItemArmTransform): +/-0.56 X depending on main arm.
         poseStack.translate(sign * 0.56f, -0.52f, -0.72f);
-        // handheld.json firstperson_{right,left}hand base orientation.
+        // handheld.json firstperson_*hand: translation is mirrored for the left hand.
+        poseStack.translate(sign * HANDHELD_TX, HANDHELD_TY, HANDHELD_TZ);
+        // handheld.json firstperson_*hand: base orientation (Y=-90, Z=+25), mirrored for left hand.
         poseStack.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(sign * -90f)));
         poseStack.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(sign * 25f)));
+        // handheld.json scale keeps a 16-unit BBModel roughly the size of a vanilla held item.
+        poseStack.scale(HANDHELD_SCALE, HANDHELD_SCALE, HANDHELD_SCALE);
 
         float[] s = def.scale();
         if (fullDefTransform) {
@@ -137,6 +153,10 @@ public class MixinFirstPersonCosmeticRenderer {
     /**
      * Suppresses vanilla item rendering for first-person contexts when a weapon cosmetic
      * replaces the held item. The arm still renders; only the item mesh is skipped.
+     *
+     * Only suppresses when the specific held item actually matches the cosmetic's weapon
+     * type (or the cosmetic is untyped / force-equipped), so items with no matching
+     * cosmetic still render normally.
      */
     @Inject(
         method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/item/ItemStack;Lnet/minecraft/world/item/ItemDisplayContext;ZLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;I)V",
