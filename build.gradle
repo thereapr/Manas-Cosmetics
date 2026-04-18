@@ -54,7 +54,7 @@ subprojects {
     }
 
     loom {
-        enableTransitiveAccessWideners = true
+        enableTransitiveAccessWideners = false
 
         runConfigs.each {
             it.setIdeConfigGenerated(false)
