@@ -91,16 +91,20 @@ public final class MobPetRenderer {
     // ── Public API ─────────────────────────────────────────────────────────────
 
     /**
-     * Renders the pet using the vanilla renderer for {@code mobTypeId} at its natural size.
+     * Renders the pet using the vanilla renderer for {@code mobTypeId} at its natural size,
+     * optionally multiplied by the per-axis {@code scale} from the cosmetic JSON.
      *
      * @param entity      the live pet entity (provides position / animation state)
      * @param mobTypeId   registry key of the target mob, e.g. {@code "minecraft:pig"}
+     * @param scale       per-axis scale multipliers ({@code [x, y, z]}); pass {@code null}
+     *                    or all-ones to render at exact vanilla size
      * @param entityYaw   interpolated body yaw in degrees (passed through to the vanilla renderer)
      * @param partialTick render partial tick (0–1)
      */
     public static void render(
             PetCosmeticEntity entity,
             String mobTypeId,
+            float[] scale,
             float entityYaw,
             float partialTick,
             PoseStack poseStack,
@@ -112,6 +116,13 @@ public final class MobPetRenderer {
 
         syncState(entity, displayMob);
 
+        boolean scaled = scale != null && scale.length == 3
+                && (scale[0] != 1f || scale[1] != 1f || scale[2] != 1f);
+        if (scaled) {
+            poseStack.pushPose();
+            poseStack.scale(scale[0], scale[1], scale[2]);
+        }
+
         EntityRenderer<Mob> renderer =
                 (EntityRenderer<Mob>) Minecraft.getInstance()
                         .getEntityRenderDispatcher()
@@ -120,6 +131,8 @@ public final class MobPetRenderer {
         // Call the renderer directly (not via dispatcher) to avoid double-shadow
         // rendering and name-tag logic that belongs to the pet entity, not the proxy.
         renderer.render(displayMob, entityYaw, partialTick, poseStack, bufferSource, packedLight);
+
+        if (scaled) poseStack.popPose();
     }
 
     /**

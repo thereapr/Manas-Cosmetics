@@ -59,7 +59,7 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
 
         // ── Vanilla mob rendering path ─────────────────────────────────────────
         if (def.mobType() != null && !def.mobType().isEmpty()) {
-            MobPetRenderer.render(entity, def.mobType(), entityYaw, partialTick,
+            MobPetRenderer.render(entity, def.mobType(), def.scale(), entityYaw, partialTick,
                     poseStack, bufferSource, packedLight);
             super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
             return;
