@@ -37,7 +37,7 @@ public final class BuiltinPetModels {
             Path sidecarPath = cosmeticsDir.resolve(spec.id() + ".json");
 
             writeIfAbsent(modelPath,   buildBBModel(spec.id(), spec.cubes()));
-            writeIfAbsent(sidecarPath, buildSidecar(spec.id(), spec.displayName()));
+            writeIfAbsent(sidecarPath, buildSidecar(spec.id(), spec.displayName(), spec.mobType()));
         }
     }
 
