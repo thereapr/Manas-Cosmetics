@@ -39,8 +39,14 @@ public record CosmeticDefinition(
             scale = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
         }
 
+        // PET, GRIMOIRE, and MAGIC_STAFF control their own transform at render time via
+        // their respective renderers; only scale is meaningful in their JSON configs.
+        boolean transformControlled = slot == CosmeticSlot.PET
+            || slot == CosmeticSlot.GRIMOIRE
+            || slot == CosmeticSlot.MAGIC_STAFF;
+
         float[] offset = {0f, 0f, 0f};
-        if (json.has("offset")) {
+        if (!transformControlled && json.has("offset")) {
             var arr = json.getAsJsonArray("offset");
             offset = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
         }
@@ -50,7 +56,7 @@ public record CosmeticDefinition(
         // receive the flip — weapons follow arm-bone transforms, pets have their own yaw rotation.
         boolean needsFlip = !slot.isWeaponSlot() && slot != CosmeticSlot.PET;
         float[] rotation = needsFlip ? new float[]{180f, 0f, 0f} : new float[]{0f, 0f, 0f};
-        if (json.has("rotation")) {
+        if (!transformControlled && json.has("rotation")) {
             var arr = json.getAsJsonArray("rotation");
             rotation = new float[]{arr.get(0).getAsFloat(), arr.get(1).getAsFloat(), arr.get(2).getAsFloat()};
         }

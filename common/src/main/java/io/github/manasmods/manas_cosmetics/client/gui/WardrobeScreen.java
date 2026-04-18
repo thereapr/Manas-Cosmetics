@@ -2,6 +2,7 @@ package io.github.manasmods.manas_cosmetics.client.gui;
 
 import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
+import io.github.manasmods.manas_cosmetics.api.WeaponType;
 import io.github.manasmods.manas_cosmetics.client.ClientCosmeticState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -12,8 +13,8 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.network.chat.Component;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Wardrobe GUI — Left-Alt or /manas_cosmetics wardrobe.
@@ -28,44 +29,89 @@ import java.util.List;
  *  │ [Equip]  [Unequip]                     │ [Name] [Sv][Ld]   │
  *  │ [Force Equip]                          │ [Delete]          │
  *  └────────────────────────────────────────────────────────────┘
+ *
+ * The sidebar shows non-weapon slots, then a "── Weapon ──" header, then
+ * per-weapon-type entries (Sword, Bow, …) and weapon-slot entries (Shield,
+ * Grimoire, Magic Staff) as sub-items.
  */
 public class WardrobeScreen extends Screen {
+
+    // ── Sidebar entry types ────────────────────────────────────────────────────
+
+    /** Sealed hierarchy for the items shown in the left sidebar. */
+    private sealed interface SidebarEntry
+            permits SidebarEntry.SlotSE, SidebarEntry.WeaponTypeSE, SidebarEntry.WeaponHeaderSE {
+
+        /** A regular cosmetic slot. */
+        record SlotSE(CosmeticSlot slot) implements SidebarEntry {}
+
+        /** A per-weapon-type sub-entry (maps to WEAPON slot cosmetics filtered by weapon type). */
+        record WeaponTypeSE(WeaponType weaponType) implements SidebarEntry {}
+
+        /** Non-selectable group header for the weapon section. */
+        record WeaponHeaderSE() implements SidebarEntry {}
+    }
 
     // ── Layout ─────────────────────────────────────────────────────────────────
 
     private static final int WIDTH        = 400;
     private static final int HEIGHT       = 270;
-    private static final int HEADER_H     = 14;   // title bar height
-    private static final int BOTTOM_H     = 64;   // action buttons height
-    private static final int CONTENT_H    = HEIGHT - HEADER_H - BOTTOM_H; // 192
-    private static final int SIDEBAR_W    = 72;   // slot sidebar width
-    private static final int RIGHT_W      = 130;  // right panel width
-    // cosmetic list fills the middle
-    private static final int LIST_W       = WIDTH - SIDEBAR_W - RIGHT_W - 4; // ~194
-    // right panel split: preview top half, presets bottom half
-    private static final int PREVIEW_H    = CONTENT_H / 2;   // 96
-    private static final int PRESET_LIST_H = CONTENT_H - PREVIEW_H; // 96
+    private static final int HEADER_H     = 14;
+    private static final int BOTTOM_H     = 64;
+    private static final int CONTENT_H    = HEIGHT - HEADER_H - BOTTOM_H;
+    private static final int SIDEBAR_W    = 72;
+    private static final int RIGHT_W      = 130;
+    private static final int LIST_W       = WIDTH - SIDEBAR_W - RIGHT_W - 4;
+    private static final int PREVIEW_H    = CONTENT_H / 2;
+    private static final int PRESET_LIST_H = CONTENT_H - PREVIEW_H;
 
     private static final int ROW_H = 13;
 
-    // ── Palette (brighter / higher contrast) ──────────────────────────────────
+    // ── Palette ────────────────────────────────────────────────────────────────
 
-    private static final int COL_OVERLAY   = 0xA0000000;  // world overlay
-    private static final int COL_PANEL     = 0xFF1E2E40;  // main panel bg
-    private static final int COL_INNER     = 0xFF111E2C;  // inner areas
-    private static final int COL_HEADER    = 0xFF182437;  // title bar
-    private static final int COL_BORDER_DK = 0xFF080F18;  // shadow border
-    private static final int COL_BORDER_LT = 0xFF4D9FE0;  // highlight border (bright)
-    private static final int COL_DIVIDER   = 0xFF2A4A6A;  // inner dividers
-    private static final int COL_ACCENT    = 0xFF55AAFF;  // active-tab top strip
-    private static final int COL_SEL       = 0xFF2255AA;  // selected row/tab
-    private static final int COL_HOV       = 0xFF1A3A55;  // hovered row
-    private static final int COL_TEXT      = 0xFFFFFFFF;  // primary text
-    private static final int COL_TEXT_DIM  = 0xFFBBDEF7;  // secondary text
-    private static final int COL_TITLE     = 0xFFAAE4FF;  // title
-    private static final int COL_EQUIPPED  = 0xFF44FF88;  // equipped tick
+    private static final int COL_OVERLAY   = 0xA0000000;
+    private static final int COL_PANEL     = 0xFF1E2E40;
+    private static final int COL_INNER     = 0xFF111E2C;
+    private static final int COL_HEADER    = 0xFF182437;
+    private static final int COL_BORDER_DK = 0xFF080F18;
+    private static final int COL_BORDER_LT = 0xFF4D9FE0;
+    private static final int COL_DIVIDER   = 0xFF2A4A6A;
+    private static final int COL_ACCENT    = 0xFF55AAFF;
+    private static final int COL_SEL       = 0xFF2255AA;
+    private static final int COL_HOV       = 0xFF1A3A55;
+    private static final int COL_TEXT      = 0xFFFFFFFF;
+    private static final int COL_TEXT_DIM  = 0xFFBBDEF7;
+    private static final int COL_TITLE     = 0xFFAAE4FF;
+    private static final int COL_EQUIPPED  = 0xFF44FF88;
+    private static final int COL_HEADER_ENTRY = 0xFF4D9FE0;
 
-    // ── Persistent GUI state (survives between openings in the same session) ───
+    // ── Sidebar content ────────────────────────────────────────────────────────
+
+    // Weapon types that have their own CosmeticSlot sub-entry (excluded from WeaponTypeSE list)
+    private static final Set<String> WEAPON_SLOT_IDS = Set.of("shield", "grimoire", "magic_staff");
+
+    private static List<SidebarEntry> buildSidebarEntries() {
+        List<SidebarEntry> list = new ArrayList<>();
+        // Non-weapon CosmeticSlot entries (in enum order)
+        for (CosmeticSlot slot : CosmeticSlot.values()) {
+            if (!slot.isWeaponSlot()) list.add(new SidebarEntry.SlotSE(slot));
+        }
+        // Weapon group header (non-selectable divider)
+        list.add(new SidebarEntry.WeaponHeaderSE());
+        // Per-weapon-type sub-entries (skip ANY and weapon types covered by their own slot)
+        for (WeaponType wt : WeaponType.values()) {
+            if (wt != WeaponType.ANY && !WEAPON_SLOT_IDS.contains(wt.getId())) {
+                list.add(new SidebarEntry.WeaponTypeSE(wt));
+            }
+        }
+        // Weapon-slot sub-entries
+        list.add(new SidebarEntry.SlotSE(CosmeticSlot.SHIELD));
+        list.add(new SidebarEntry.SlotSE(CosmeticSlot.GRIMOIRE));
+        list.add(new SidebarEntry.SlotSE(CosmeticSlot.MAGIC_STAFF));
+        return list;
+    }
+
+    // ── Persistent GUI state ───────────────────────────────────────────────────
 
     private static int savedTabIndex      = 0;
     private static int savedSlotScroll    = 0;
@@ -73,7 +119,6 @@ public class WardrobeScreen extends Screen {
     private static int savedCosmeticIndex = -1;
     private static int savedPresetIndex   = -1;
 
-    /** Called on client disconnect so stale state is not restored next session. */
     public static void clearSavedState() {
         savedTabIndex      = 0;
         savedSlotScroll    = 0;
@@ -84,7 +129,7 @@ public class WardrobeScreen extends Screen {
 
     // ── Instance state ─────────────────────────────────────────────────────────
 
-    private final List<CosmeticSlot> SLOT_TABS = Arrays.asList(CosmeticSlot.values());
+    private final List<SidebarEntry> SLOT_TABS = buildSidebarEntries();
 
     private int selectedTabIndex      = savedTabIndex;
     private int slotScrollOffset      = savedSlotScroll;
@@ -108,10 +153,9 @@ public class WardrobeScreen extends Screen {
         guiLeft = (width  - WIDTH)  / 2;
         guiTop  = (height - HEIGHT) / 2;
 
-        int bY1 = guiTop + HEADER_H + CONTENT_H + 2;   // button row 1
-        int bY2 = bY1 + 20;                             // button row 2
+        int bY1 = guiTop + HEADER_H + CONTENT_H + 2;
+        int bY2 = bY1 + 20;
 
-        // Left / main area buttons
         addRenderableWidget(Button.builder(
                 Component.translatable("gui.manas_cosmetics.equip"),
                 btn -> equipSelected()
@@ -127,8 +171,7 @@ public class WardrobeScreen extends Screen {
                 btn -> toggleForceEquip()
         ).bounds(guiLeft + SIDEBAR_W + 4, bY2, 90, 20).build());
 
-        // Right panel buttons
-        int rx = guiLeft + WIDTH - RIGHT_W + 2;
+        int rx  = guiLeft + WIDTH - RIGHT_W + 2;
         int rbW = RIGHT_W - 6;
 
         presetNameBox = new EditBox(
@@ -173,66 +216,71 @@ public class WardrobeScreen extends Screen {
         final int cy = guiTop;
         final int contentY = cy + HEADER_H;
 
-        // ── Outer panel ─────────────────────────────────────────────────────
         drawPanel(g, cx, cy, WIDTH, HEIGHT);
 
-        // Title bar
         g.fill(cx + 1, cy + 1, cx + WIDTH - 1, cy + HEADER_H, COL_HEADER);
         g.drawString(font, title, cx + 5, cy + 3, COL_TITLE, true);
 
         // ── Slot sidebar ─────────────────────────────────────────────────────
-        int sideX  = cx + 1;
-        int sideY  = contentY;
-        int sideH  = CONTENT_H;
+        int sideX = cx + 1;
+        int sideY = contentY;
+        int sideH = CONTENT_H;
         g.fill(sideX, sideY, sideX + SIDEBAR_W, sideY + sideH, COL_INNER);
 
         int visibleSlots = sideH / ROW_H;
         g.enableScissor(sideX, sideY, sideX + SIDEBAR_W, sideY + sideH);
         for (int i = slotScrollOffset; i < SLOT_TABS.size() && (i - slotScrollOffset) < visibleSlots; i++) {
-            CosmeticSlot slot = SLOT_TABS.get(i);
-            int rowY  = sideY + (i - slotScrollOffset) * ROW_H;
-            boolean active   = (i == selectedTabIndex);
-            boolean anyEquip = ClientCosmeticState.get().getEquipped(slot).isPresent();
+            SidebarEntry entry = SLOT_TABS.get(i);
+            int rowY = sideY + (i - slotScrollOffset) * ROW_H;
+
+            if (entry instanceof SidebarEntry.WeaponHeaderSE) {
+                // Non-selectable group header
+                g.fill(sideX, rowY, sideX + SIDEBAR_W, rowY + ROW_H, COL_INNER);
+                g.drawString(font, "Weapon", sideX + 5, rowY + 2, COL_HEADER_ENTRY, true);
+                continue;
+            }
+
+            boolean active    = (i == selectedTabIndex);
+            boolean anyEquip  = isEntryEquipped(entry);
+            boolean isSubEntry = isWeaponSubEntry(entry);
 
             if (active) {
                 g.fill(sideX, rowY, sideX + SIDEBAR_W, rowY + ROW_H, COL_SEL);
-                g.fill(sideX, rowY, sideX + 2, rowY + ROW_H, COL_ACCENT); // left accent bar
+                g.fill(sideX, rowY, sideX + 2, rowY + ROW_H, COL_ACCENT);
             } else if (mouseX >= sideX && mouseX < sideX + SIDEBAR_W
                     && mouseY >= rowY && mouseY < rowY + ROW_H) {
                 g.fill(sideX, rowY, sideX + SIDEBAR_W, rowY + ROW_H, COL_HOV);
             }
 
-            String dot  = anyEquip ? "\u25CF " : "  ";
-            int txtCol  = active ? COL_TEXT : COL_TEXT_DIM;
-            g.drawString(font, dot + slotLabel(slot), sideX + 5, rowY + 2, anyEquip ? COL_EQUIPPED : txtCol, true);
+            int indent = isSubEntry ? 10 : 0;
+            String dot   = anyEquip ? "\u25CF " : "  ";
+            int txtCol   = active ? COL_TEXT : COL_TEXT_DIM;
+            g.drawString(font, dot + entryLabel(entry), sideX + 5 + indent, rowY + 2,
+                    anyEquip ? COL_EQUIPPED : txtCol, true);
         }
         g.disableScissor();
 
-        // Sidebar / list divider
         int divX = cx + SIDEBAR_W + 1;
         g.fill(divX, contentY, divX + 1, contentY + CONTENT_H, COL_DIVIDER);
 
-        // ── Cosmetic list ────────────────────────────────────────────────────
-        CosmeticSlot activeSlot = SLOT_TABS.get(selectedTabIndex);
+        // ── Cosmetic list ─────────────────────────────────────────────────────
+        SidebarEntry activeEntry = SLOT_TABS.get(selectedTabIndex);
         int listX = divX + 2;
         int listY = contentY;
         int listH = CONTENT_H;
         g.fill(listX, listY, listX + LIST_W, listY + listH, COL_INNER);
 
-        // Slot header
-        g.drawString(font,
-                activeSlot.getId().replace('_', ' ').toUpperCase(),
-                listX + 4, listY + 2, COL_TEXT_DIM, true);
+        g.drawString(font, entryLabel(activeEntry).toUpperCase(), listX + 4, listY + 2, COL_TEXT_DIM, true);
 
         int itemY0 = listY + ROW_H + 2;
         int itemH  = listH - ROW_H - 2;
         g.enableScissor(listX, itemY0, listX + LIST_W, itemY0 + itemH);
-        List<CosmeticDefinition> cosmetics = getCosmeticsForSlot(activeSlot);
+        List<CosmeticDefinition> cosmetics = getCosmeticsForEntry(activeEntry);
         int visRows = itemH / ROW_H;
         for (int i = listScrollOffset; i < cosmetics.size() && (i - listScrollOffset) < visRows; i++) {
             CosmeticDefinition def = cosmetics.get(i);
-            int rowY  = itemY0 + (i - listScrollOffset) * ROW_H;
-            boolean eq  = ClientCosmeticState.get().isEquipped(activeSlot, def.id());
+            int rowY = itemY0 + (i - listScrollOffset) * ROW_H;
+            boolean eq  = isEquippedInList(activeEntry, def);
             boolean sel = (i == selectedCosmeticIndex);
 
             if (sel) {
@@ -248,39 +296,34 @@ public class WardrobeScreen extends Screen {
         }
         g.disableScissor();
 
-        // List / right-panel divider
         int rdivX = listX + LIST_W + 1;
         g.fill(rdivX, contentY, rdivX + 1, contentY + CONTENT_H, COL_DIVIDER);
 
-        // ── Right panel ──────────────────────────────────────────────────────
+        // ── Right panel ───────────────────────────────────────────────────────
         int rpX = rdivX + 2;
         int rpW = cx + WIDTH - 1 - rpX;
 
-        // ── Player preview (top half) ────────────────────────────────────────
         int prevY = contentY;
         g.fill(rpX, prevY, rpX + rpW, prevY + PREVIEW_H, COL_INNER);
         g.drawString(font, "Preview", rpX + 3, prevY + 2, COL_TEXT_DIM, true);
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player != null) {
-            int scale = 38;
             InventoryScreen.renderEntityInInventoryFollowsMouse(
                     g,
                     rpX + 1, prevY + ROW_H,
                     rpX + rpW - 1, prevY + PREVIEW_H - 1,
-                    scale, 0f,
+                    38, 0f,
                     mouseX, mouseY,
                     mc.player
             );
         }
 
-        // Separator between preview and presets
         int sepY = contentY + PREVIEW_H;
         g.fill(rpX, sepY, rpX + rpW, sepY + 1, COL_DIVIDER);
 
-        // ── Preset list (bottom half) ─────────────────────────────────────────
-        int plY = sepY + 1;
-        int plH = PRESET_LIST_H - 1;
+        int plY  = sepY + 1;
+        int plH  = PRESET_LIST_H - 1;
         g.fill(rpX, plY, rpX + rpW, plY + plH, COL_INNER);
         g.drawString(font, "Presets", rpX + 3, plY + 2, COL_TEXT_DIM, true);
 
@@ -311,20 +354,21 @@ public class WardrobeScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         final int contentY = guiTop + HEADER_H;
 
-        // Slot sidebar clicks
         int sideX = guiLeft + 1;
         if (mouseX >= sideX && mouseX < sideX + SIDEBAR_W
                 && mouseY >= contentY && mouseY < contentY + CONTENT_H) {
             int row = ((int) mouseY - contentY) / ROW_H + slotScrollOffset;
             if (row >= 0 && row < SLOT_TABS.size()) {
-                selectTab(row);
+                // Skip non-selectable headers
+                if (!(SLOT_TABS.get(row) instanceof SidebarEntry.WeaponHeaderSE)) {
+                    selectTab(row);
+                }
                 return true;
             }
         }
 
-        // Cosmetic list clicks
-        CosmeticSlot activeSlot = SLOT_TABS.get(selectedTabIndex);
-        List<CosmeticDefinition> cosmetics = getCosmeticsForSlot(activeSlot);
+        SidebarEntry activeEntry = SLOT_TABS.get(selectedTabIndex);
+        List<CosmeticDefinition> cosmetics = getCosmeticsForEntry(activeEntry);
         int divX  = guiLeft + SIDEBAR_W + 1;
         int listX = divX + 2;
         int itemY0 = contentY + ROW_H + 2;
@@ -336,7 +380,6 @@ public class WardrobeScreen extends Screen {
             }
         }
 
-        // Preset list clicks
         int rdivX = listX + LIST_W + 1;
         int rpX   = rdivX + 2;
         int sepY  = contentY + PREVIEW_H;
@@ -383,26 +426,54 @@ public class WardrobeScreen extends Screen {
 
     private void equipSelected() {
         if (selectedCosmeticIndex < 0) return;
-        CosmeticSlot slot = SLOT_TABS.get(selectedTabIndex);
-        List<CosmeticDefinition> cosmetics = getCosmeticsForSlot(slot);
+        SidebarEntry entry = SLOT_TABS.get(selectedTabIndex);
+        List<CosmeticDefinition> cosmetics = getCosmeticsForEntry(entry);
         if (selectedCosmeticIndex >= cosmetics.size()) return;
         String id = cosmetics.get(selectedCosmeticIndex).id();
-        ClientCosmeticState.get().equip(slot, id);
-        sendEquipPacket(slot, id, false);
+        switch (entry) {
+            case SidebarEntry.SlotSE se -> {
+                ClientCosmeticState.get().equip(se.slot(), id);
+                sendEquipPacket(se.slot(), id, false);
+            }
+            case SidebarEntry.WeaponTypeSE wte -> {
+                ClientCosmeticState.get().equipWeapon(wte.weaponType(), id);
+                sendEquipWeaponPacket(wte.weaponType(), id, false);
+            }
+            case SidebarEntry.WeaponHeaderSE ignored -> {}
+        }
     }
 
     private void unequipCurrent() {
-        CosmeticSlot slot = SLOT_TABS.get(selectedTabIndex);
-        ClientCosmeticState.get().unequip(slot);
-        sendUnequipPacket(slot);
+        SidebarEntry entry = SLOT_TABS.get(selectedTabIndex);
+        switch (entry) {
+            case SidebarEntry.SlotSE se -> {
+                ClientCosmeticState.get().unequip(se.slot());
+                sendUnequipPacket(se.slot());
+            }
+            case SidebarEntry.WeaponTypeSE wte -> {
+                ClientCosmeticState.get().unequipWeapon(wte.weaponType());
+                sendUnequipWeaponPacket(wte.weaponType());
+            }
+            case SidebarEntry.WeaponHeaderSE ignored -> {}
+        }
     }
 
     private void toggleForceEquip() {
-        CosmeticSlot slot = SLOT_TABS.get(selectedTabIndex);
-        if (!slot.isWeaponSlot()) return;
-        boolean current = ClientCosmeticState.get().isForceEquip(slot);
-        ClientCosmeticState.get().setForceEquip(slot, !current);
-        sendForceEquipPacket(slot, !current);
+        SidebarEntry entry = SLOT_TABS.get(selectedTabIndex);
+        switch (entry) {
+            case SidebarEntry.SlotSE se -> {
+                if (!se.slot().isWeaponSlot()) return;
+                boolean current = ClientCosmeticState.get().isForceEquip(se.slot());
+                ClientCosmeticState.get().setForceEquip(se.slot(), !current);
+                sendForceEquipPacket(se.slot(), !current);
+            }
+            case SidebarEntry.WeaponTypeSE wte -> {
+                boolean current = ClientCosmeticState.get().isForceEquipWeapon(wte.weaponType());
+                ClientCosmeticState.get().setForceEquipWeapon(wte.weaponType(), !current);
+                sendForceEquipWeaponPacket(wte.weaponType(), !current);
+            }
+            case SidebarEntry.WeaponHeaderSE ignored -> {}
+        }
     }
 
     private void savePreset() {
@@ -427,56 +498,111 @@ public class WardrobeScreen extends Screen {
 
     // ── Network ────────────────────────────────────────────────────────────────
 
-    private void sendEquipPacket(CosmeticSlot slot, String id, boolean forceEquip) {
+    private void sendEquipPacket(CosmeticSlot slot, String id, boolean force) {
         dev.architectury.networking.NetworkManager.sendToServer(
-            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipPayload(slot.getId(), id, forceEquip));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipPayload(slot.getId(), id, force));
     }
 
     private void sendUnequipPacket(CosmeticSlot slot) {
         dev.architectury.networking.NetworkManager.sendToServer(
-                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.UnequipPayload(slot.getId()));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.UnequipPayload(slot.getId()));
     }
 
     private void sendForceEquipPacket(CosmeticSlot slot, boolean value) {
         dev.architectury.networking.NetworkManager.sendToServer(
-                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.ForceEquipPayload(slot.getId(), value));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.ForceEquipPayload(slot.getId(), value));
+    }
+
+    private void sendEquipWeaponPacket(WeaponType wt, String id, boolean force) {
+        dev.architectury.networking.NetworkManager.sendToServer(
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.EquipWeaponPayload(wt.getId(), id, force));
+    }
+
+    private void sendUnequipWeaponPacket(WeaponType wt) {
+        dev.architectury.networking.NetworkManager.sendToServer(
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.UnequipWeaponPayload(wt.getId()));
+    }
+
+    private void sendForceEquipWeaponPacket(WeaponType wt, boolean value) {
+        dev.architectury.networking.NetworkManager.sendToServer(
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.ForceEquipWeaponPayload(wt.getId(), value));
     }
 
     private void sendPresetSavePacket(String name) {
         dev.architectury.networking.NetworkManager.sendToServer(
-                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetSavePayload(name));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetSavePayload(name));
     }
 
     private void sendPresetLoadPacket(int index) {
         dev.architectury.networking.NetworkManager.sendToServer(
-                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetLoadPayload(index));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetLoadPayload(index));
     }
 
     private void sendPresetDeletePacket(int index) {
         dev.architectury.networking.NetworkManager.sendToServer(
-                new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetDeletePayload(index));
+            new io.github.manasmods.manas_cosmetics.network.WardrobePayloads.PresetDeletePayload(index));
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
 
-    /**
-     * Two-layer panel: outer dark shadow → inner bright-blue border → content fill.
-     */
     private static void drawPanel(GuiGraphics g, int x, int y, int w, int h) {
         g.fill(x - 1, y - 1, x + w + 1, y + h + 1, COL_BORDER_DK);
         g.fill(x,     y,     x + w,     y + h,     COL_BORDER_LT);
         g.fill(x + 1, y + 1, x + w - 1, y + h - 1, COL_PANEL);
     }
 
-    private List<CosmeticDefinition> getCosmeticsForSlot(CosmeticSlot slot) {
+    private List<CosmeticDefinition> getCosmeticsForEntry(SidebarEntry entry) {
         List<CosmeticDefinition> result = new ArrayList<>();
         for (CosmeticDefinition def : ClientCosmeticState.get().getAvailableCosmetics()) {
-            if (def.slot() == slot) result.add(def);
+            switch (entry) {
+                case SidebarEntry.SlotSE se -> { if (def.slot() == se.slot()) result.add(def); }
+                case SidebarEntry.WeaponTypeSE wte -> {
+                    if (def.slot() == CosmeticSlot.WEAPON && def.weaponType() == wte.weaponType())
+                        result.add(def);
+                }
+                case SidebarEntry.WeaponHeaderSE ignored -> {}
+            }
         }
         return result;
     }
 
-    private String slotLabel(CosmeticSlot slot) {
+    private boolean isEntryEquipped(SidebarEntry entry) {
+        ClientCosmeticState state = ClientCosmeticState.get();
+        return switch (entry) {
+            case SidebarEntry.SlotSE se -> state.getEquipped(se.slot()).isPresent();
+            case SidebarEntry.WeaponTypeSE wte -> state.getEquippedWeapon(wte.weaponType()).isPresent();
+            case SidebarEntry.WeaponHeaderSE ignored -> false;
+        };
+    }
+
+    private boolean isEquippedInList(SidebarEntry entry, CosmeticDefinition def) {
+        ClientCosmeticState state = ClientCosmeticState.get();
+        return switch (entry) {
+            case SidebarEntry.SlotSE se -> state.isEquipped(se.slot(), def.id());
+            case SidebarEntry.WeaponTypeSE wte -> state.isEquippedWeapon(wte.weaponType(), def.id());
+            case SidebarEntry.WeaponHeaderSE ignored -> false;
+        };
+    }
+
+    /** Returns true for sidebar entries that should be rendered as indented sub-items. */
+    private static boolean isWeaponSubEntry(SidebarEntry entry) {
+        if (entry instanceof SidebarEntry.WeaponTypeSE) return true;
+        if (entry instanceof SidebarEntry.SlotSE se) {
+            CosmeticSlot slot = se.slot();
+            return slot == CosmeticSlot.SHIELD || slot == CosmeticSlot.GRIMOIRE || slot == CosmeticSlot.MAGIC_STAFF;
+        }
+        return false;
+    }
+
+    private String entryLabel(SidebarEntry entry) {
+        return switch (entry) {
+            case SidebarEntry.SlotSE se -> slotLabel(se.slot());
+            case SidebarEntry.WeaponTypeSE wte -> weaponTypeLabel(wte.weaponType());
+            case SidebarEntry.WeaponHeaderSE ignored -> "Weapon";
+        };
+    }
+
+    private static String slotLabel(CosmeticSlot slot) {
         return switch (slot) {
             case HELMET      -> "Helmet";
             case ABOVE_HEAD  -> "Above Head";
@@ -496,9 +622,23 @@ public class WardrobeScreen extends Screen {
         };
     }
 
+    private static String weaponTypeLabel(WeaponType wt) {
+        String id = wt.getId();
+        // Convert snake_case to Title Case
+        String[] parts = id.split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (!p.isEmpty()) {
+                sb.append(Character.toUpperCase(p.charAt(0)));
+                if (p.length() > 1) sb.append(p.substring(1));
+                sb.append(' ');
+            }
+        }
+        return sb.toString().trim();
+    }
+
     @Override
     public void removed() {
-        // Persist state for next opening
         savedTabIndex      = selectedTabIndex;
         savedSlotScroll    = slotScrollOffset;
         savedListScroll    = listScrollOffset;

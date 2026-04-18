@@ -65,7 +65,11 @@ public final class BBModelParser {
                     if (comma >= 0) {
                         source = source.substring(comma + 1);
                     }
-                    textureBytes = Base64.getDecoder().decode(source);
+                    try {
+                        textureBytes = Base64.getDecoder().decode(source);
+                    } catch (IllegalArgumentException ignored) {
+                        // External texture reference or malformed base64 — fall back to blank
+                    }
                 }
             }
         }

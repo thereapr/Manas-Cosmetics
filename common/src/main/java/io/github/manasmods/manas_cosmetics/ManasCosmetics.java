@@ -5,6 +5,7 @@ import dev.architectury.event.events.common.LifecycleEvent;
 import dev.architectury.event.events.common.PlayerEvent;
 import dev.architectury.networking.NetworkManager;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
+import io.github.manasmods.manas_cosmetics.api.WeaponType;
 import io.github.manasmods.manas_cosmetics.command.ManasCosmteticsCommand;
 import io.github.manasmods.manas_cosmetics.core.CosmeticManager;
 import io.github.manasmods.manas_cosmetics.core.PetManager;
@@ -200,6 +201,51 @@ public final class ManasCosmetics {
                 (payload, ctx) -> ctx.queue(() ->
                         PlayerCosmeticData.of((ServerPlayer) ctx.getPlayer()).deletePreset(payload.index())
                 )
+        );
+
+        // Per-weapon-type equip
+        NetworkManager.registerReceiver(
+                NetworkManager.Side.C2S,
+                WardrobePayloads.EquipWeaponPayload.TYPE,
+                WardrobePayloads.EquipWeaponPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> {
+                    ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
+                    WeaponType wt = WeaponType.fromId(payload.weaponTypeId());
+                    if (wt == WeaponType.ANY) return;
+                    if (!CosmeticManager.get().exists(payload.cosmeticId())) return;
+                    PlayerCosmeticData data = PlayerCosmeticData.of(sp);
+                    data.equipWeapon(wt, payload.cosmeticId());
+                    data.setForceEquipWeapon(wt, payload.force());
+                    CosmeticsNetworking.syncToTrackers(sp);
+                })
+        );
+
+        // Per-weapon-type unequip
+        NetworkManager.registerReceiver(
+                NetworkManager.Side.C2S,
+                WardrobePayloads.UnequipWeaponPayload.TYPE,
+                WardrobePayloads.UnequipWeaponPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> {
+                    ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
+                    WeaponType wt = WeaponType.fromId(payload.weaponTypeId());
+                    if (wt == WeaponType.ANY) return;
+                    PlayerCosmeticData.of(sp).unequipWeapon(wt);
+                    CosmeticsNetworking.syncToTrackers(sp);
+                })
+        );
+
+        // Per-weapon-type force equip toggle
+        NetworkManager.registerReceiver(
+                NetworkManager.Side.C2S,
+                WardrobePayloads.ForceEquipWeaponPayload.TYPE,
+                WardrobePayloads.ForceEquipWeaponPayload.STREAM_CODEC,
+                (payload, ctx) -> ctx.queue(() -> {
+                    ServerPlayer sp = (ServerPlayer) ctx.getPlayer();
+                    WeaponType wt = WeaponType.fromId(payload.weaponTypeId());
+                    if (wt == WeaponType.ANY) return;
+                    PlayerCosmeticData.of(sp).setForceEquipWeapon(wt, payload.value());
+                    CosmeticsNetworking.syncToTrackers(sp);
+                })
         );
     }
 }

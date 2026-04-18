@@ -117,6 +117,54 @@ public final class WardrobePayloads {
         public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
     }
 
+    // ── Per-weapon-type equip ──────────────────────────────────────────────────
+
+    public record EquipWeaponPayload(String weaponTypeId, String cosmeticId, boolean force)
+            implements CustomPacketPayload {
+
+        public static final CustomPacketPayload.Type<EquipWeaponPayload> TYPE =
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "equip_weapon_c2s"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, EquipWeaponPayload> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, p) -> { buf.writeUtf(p.weaponTypeId()); buf.writeUtf(p.cosmeticId()); buf.writeBoolean(p.force()); },
+                        buf -> new EquipWeaponPayload(buf.readUtf(), buf.readUtf(), buf.readBoolean())
+                );
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    public record UnequipWeaponPayload(String weaponTypeId) implements CustomPacketPayload {
+
+        public static final CustomPacketPayload.Type<UnequipWeaponPayload> TYPE =
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "unequip_weapon_c2s"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, UnequipWeaponPayload> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, p) -> buf.writeUtf(p.weaponTypeId()),
+                        buf -> new UnequipWeaponPayload(buf.readUtf())
+                );
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
+    public record ForceEquipWeaponPayload(String weaponTypeId, boolean value) implements CustomPacketPayload {
+
+        public static final CustomPacketPayload.Type<ForceEquipWeaponPayload> TYPE =
+                new CustomPacketPayload.Type<>(ResourceLocation.fromNamespaceAndPath(ManasCosmetics.MOD_ID, "force_equip_weapon_c2s"));
+
+        public static final StreamCodec<RegistryFriendlyByteBuf, ForceEquipWeaponPayload> STREAM_CODEC =
+                StreamCodec.of(
+                        (buf, p) -> { buf.writeUtf(p.weaponTypeId()); buf.writeBoolean(p.value()); },
+                        buf -> new ForceEquipWeaponPayload(buf.readUtf(), buf.readBoolean())
+                );
+
+        @Override
+        public CustomPacketPayload.Type<? extends CustomPacketPayload> type() { return TYPE; }
+    }
+
     // ── Open wardrobe (C2S) ────────────────────────────────────────────────────
 
     public record OpenWardrobePayload() implements CustomPacketPayload {

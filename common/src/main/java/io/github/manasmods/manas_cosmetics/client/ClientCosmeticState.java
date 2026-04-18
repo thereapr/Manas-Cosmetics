@@ -2,6 +2,7 @@ package io.github.manasmods.manas_cosmetics.client;
 
 import io.github.manasmods.manas_cosmetics.api.CosmeticDefinition;
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
+import io.github.manasmods.manas_cosmetics.api.WeaponType;
 import io.github.manasmods.manas_cosmetics.data.CosmeticPreset;
 import io.github.manasmods.manas_cosmetics.network.SyncPlayerCosmeticsPayload;
 import io.github.manasmods.manas_cosmetics.network.SyncPresetsPayload;
@@ -19,14 +20,20 @@ public final class ClientCosmeticState {
 
     private static final ClientCosmeticState INSTANCE = new ClientCosmeticState();
 
-    // Local player equipped state (mirrors server)
+    // Local player slot-based state
     private final Map<CosmeticSlot, String> equipped = new EnumMap<>(CosmeticSlot.class);
     private final Map<CosmeticSlot, Boolean> forceEquip = new EnumMap<>(CosmeticSlot.class);
+    // Local player per-weapon-type state
+    private final Map<WeaponType, String> equippedWeapon = new EnumMap<>(WeaponType.class);
+    private final Map<WeaponType, Boolean> forceEquipWeapon = new EnumMap<>(WeaponType.class);
+
     private final List<CosmeticPreset> presets = new ArrayList<>();
 
-    // All other players' states (UUID → slot → cosmeticId), for rendering
+    // Other players' states (UUID → slot → cosmeticId), for rendering
     private final Map<UUID, Map<CosmeticSlot, String>> otherPlayers = new HashMap<>();
     private final Map<UUID, Map<CosmeticSlot, Boolean>> otherPlayersForce = new HashMap<>();
+    private final Map<UUID, Map<WeaponType, String>> otherPlayersWeapon = new HashMap<>();
+    private final Map<UUID, Map<WeaponType, Boolean>> otherPlayersForceWeapon = new HashMap<>();
 
     // Available cosmetics synced from server
     private final List<CosmeticDefinition> availableCosmetics = new ArrayList<>();
@@ -48,18 +55,37 @@ public final class ClientCosmeticState {
             CosmeticSlot.fromId(slotId).ifPresent(slot -> forceMap.put(slot, value))
         );
 
+        Map<WeaponType, String> weaponMap = new EnumMap<>(WeaponType.class);
+        payload.getEquippedWeapon().forEach((wtId, cosmeticId) -> {
+            WeaponType wt = WeaponType.fromId(wtId);
+            if (wt != WeaponType.ANY) weaponMap.put(wt, cosmeticId);
+        });
+
+        Map<WeaponType, Boolean> forceWeaponMap = new EnumMap<>(WeaponType.class);
+        payload.getForceEquipWeapon().forEach((wtId, value) -> {
+            WeaponType wt = WeaponType.fromId(wtId);
+            if (wt != WeaponType.ANY) forceWeaponMap.put(wt, value);
+        });
+
         if (payload.getTargetPlayer().equals(localPlayerUUID)) {
             equipped.clear();
             equipped.putAll(equippedMap);
             forceEquip.clear();
             forceEquip.putAll(forceMap);
+            equippedWeapon.clear();
+            equippedWeapon.putAll(weaponMap);
+            forceEquipWeapon.clear();
+            forceEquipWeapon.putAll(forceWeaponMap);
         } else {
-            otherPlayers.put(payload.getTargetPlayer(), equippedMap);
-            otherPlayersForce.put(payload.getTargetPlayer(), forceMap);
+            UUID uuid = payload.getTargetPlayer();
+            otherPlayers.put(uuid, equippedMap);
+            otherPlayersForce.put(uuid, forceMap);
+            otherPlayersWeapon.put(uuid, weaponMap);
+            otherPlayersForceWeapon.put(uuid, forceWeaponMap);
         }
     }
 
-    // ── Local player queries ───────────────────────────────────────────────────
+    // ── Local player slot queries ──────────────────────────────────────────────
 
     public boolean isEquipped(CosmeticSlot slot, String id) {
         return id.equals(equipped.get(slot));
@@ -73,14 +99,39 @@ public final class ClientCosmeticState {
         return forceEquip.getOrDefault(slot, false);
     }
 
-    public List<CosmeticPreset> getPresets() { return Collections.unmodifiableList(presets); }
-
-    // Optimistic local mutations (also sent to server as C2S packets from WardrobeScreen)
     public void equip(CosmeticSlot slot, String id) { equipped.put(slot, id); }
     public void unequip(CosmeticSlot slot) { equipped.remove(slot); forceEquip.remove(slot); }
     public void setForceEquip(CosmeticSlot slot, boolean v) {
         if (v) forceEquip.put(slot, true); else forceEquip.remove(slot);
     }
+
+    // ── Local player per-weapon-type queries ───────────────────────────────────
+
+    public boolean isEquippedWeapon(WeaponType weaponType, String id) {
+        return id.equals(equippedWeapon.get(weaponType));
+    }
+
+    public Optional<String> getEquippedWeapon(WeaponType weaponType) {
+        return Optional.ofNullable(equippedWeapon.get(weaponType));
+    }
+
+    public Map<WeaponType, String> getAllEquippedWeapon() {
+        return Collections.unmodifiableMap(equippedWeapon);
+    }
+
+    public boolean isForceEquipWeapon(WeaponType weaponType) {
+        return forceEquipWeapon.getOrDefault(weaponType, false);
+    }
+
+    public void equipWeapon(WeaponType wt, String id) { equippedWeapon.put(wt, id); }
+    public void unequipWeapon(WeaponType wt) { equippedWeapon.remove(wt); forceEquipWeapon.remove(wt); }
+    public void setForceEquipWeapon(WeaponType wt, boolean v) {
+        if (v) forceEquipWeapon.put(wt, true); else forceEquipWeapon.remove(wt);
+    }
+
+    // ── Presets ────────────────────────────────────────────────────────────────
+
+    public List<CosmeticPreset> getPresets() { return Collections.unmodifiableList(presets); }
 
     public boolean savePreset(String name) {
         if (presets.size() >= CosmeticPreset.MAX_PRESETS) return false;
@@ -107,10 +158,6 @@ public final class ClientCosmeticState {
 
     // ── Preset sync from server ────────────────────────────────────────────────
 
-    /**
-     * Replaces the local preset list with the authoritative copy received from the server
-     * on login. Called from the {@code SyncPresetsPayload} S2C receiver.
-     */
     public void handlePresetsSync(SyncPresetsPayload payload) {
         presets.clear();
         for (SyncPresetsPayload.WirePreset wp : payload.getPresets()) {
@@ -137,9 +184,21 @@ public final class ClientCosmeticState {
         return map != null && map.getOrDefault(slot, false);
     }
 
+    public Map<WeaponType, String> getAllEquippedWeaponForPlayer(UUID uuid) {
+        Map<WeaponType, String> map = otherPlayersWeapon.get(uuid);
+        return map == null ? Collections.emptyMap() : Collections.unmodifiableMap(map);
+    }
+
+    public boolean isForceEquipWeaponForPlayer(UUID uuid, WeaponType wt) {
+        Map<WeaponType, Boolean> map = otherPlayersForceWeapon.get(uuid);
+        return map != null && map.getOrDefault(wt, false);
+    }
+
     public void removePlayer(UUID uuid) {
         otherPlayers.remove(uuid);
         otherPlayersForce.remove(uuid);
+        otherPlayersWeapon.remove(uuid);
+        otherPlayersForceWeapon.remove(uuid);
     }
 
     // ── Available cosmetics ────────────────────────────────────────────────────
@@ -156,8 +215,12 @@ public final class ClientCosmeticState {
     public void reset() {
         equipped.clear();
         forceEquip.clear();
+        equippedWeapon.clear();
+        forceEquipWeapon.clear();
         presets.clear();
         otherPlayers.clear();
         otherPlayersForce.clear();
+        otherPlayersWeapon.clear();
+        otherPlayersForceWeapon.clear();
     }
 }

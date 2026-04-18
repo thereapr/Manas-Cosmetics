@@ -17,15 +17,11 @@ import java.util.Optional;
  * {@link BBModelData} from the client-side {@link ClientCosmeticModelCache}
  * and drawing it with {@link BBModelRenderer}.
  *
- * <p>Auto-scaling: the model is uniformly scaled so its height is at most
- * {@value #MAX_HEIGHT_BLOCKS} blocks tall, preventing oversized pets.</p>
+ * The model is rendered at its natural Blockbench scale; only the {@code scale}
+ * field from the cosmetic's JSON config is applied (no auto-shrink).
  */
 public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity> {
 
-    /** Maximum height of a rendered pet in blocks. */
-    private static final float MAX_HEIGHT_BLOCKS = 1.0f;
-    /** In BBModel units (1 block = 16 units). */
-    private static final float MAX_HEIGHT_UNITS = MAX_HEIGHT_BLOCKS * 16f;
     private static final float UNITS_TO_BLOCKS = 1f / 16f;
 
     public PetCosmeticRenderer(EntityRendererProvider.Context context) {
@@ -56,9 +52,6 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         CosmeticDefinition def = defOpt.get();
 
         // ── Vanilla mob rendering path ─────────────────────────────────────────
-        // When mob_type is set, delegate entirely to the vanilla EntityRenderer for
-        // that mob type.  The display mob handles its own rotations internally, so
-        // we must NOT apply an extra yaw rotation here.
         if (def.mobType() != null && !def.mobType().isEmpty()) {
             MobPetRenderer.render(entity, def.mobType(), entityYaw, partialTick,
                                   poseStack, bufferSource, packedLight);
@@ -80,13 +73,10 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
         float bodyYaw = Mth.rotLerp(partialTick, entity.yBodyRotO, entity.yBodyRot);
         poseStack.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(180f - bodyYaw)));
 
-        // Auto-scale the model so its vertical extent fits within MAX_HEIGHT_BLOCKS.
-        float autoScale = computeAutoScale(model);
+        // Apply only the user-defined scale (offset and rotation ignored for pet slot).
+        float[] s = def.scale();
+        poseStack.scale(s[0], s[1], s[2]);
 
-        // Apply user-defined scale/offset/rotation from the cosmetic definition on top.
-        applyDefTransformWithAutoScale(poseStack, def, autoScale);
-
-        // Keyframe times in .bbmodel are in seconds; convert from ticks (20/s).
         float animTime = (entity.tickCount + partialTick) / 20.0f;
         BBModelRenderer.render(poseStack, bufferSource, packedLight, model, texture, animTime);
 
@@ -94,56 +84,5 @@ public final class PetCosmeticRenderer extends EntityRenderer<PetCosmeticEntity>
 
         // Shadow / name-tag rendering from parent
         super.render(entity, entityYaw, partialTick, poseStack, bufferSource, packedLight);
-    }
-
-    // ── Auto-scale computation ─────────────────────────────────────────────────
-
-    /**
-     * Computes a uniform scale factor so the model's height fits within
-     * {@value #MAX_HEIGHT_UNITS} BBModel units.
-     */
-    private static float computeAutoScale(BBModelData model) {
-        float[] minMax = {Float.MAX_VALUE, Float.MAX_VALUE, Float.MAX_VALUE,
-                          -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
-        for (BBModelData.Bone bone : model.bones()) {
-            expandBounds(minMax, bone);
-        }
-        if (minMax[1] == Float.MAX_VALUE) return 1.0f; // No cubes found
-        float height = minMax[4] - minMax[1]; // height in BBModel units
-        if (height <= 0 || height <= MAX_HEIGHT_UNITS) return 1.0f;
-        return MAX_HEIGHT_UNITS / height;
-    }
-
-    private static void expandBounds(float[] b, BBModelData.Bone bone) {
-        for (BBModelData.Cube cube : bone.cubes()) {
-            for (int i = 0; i < 3; i++) {
-                float lo = Math.min(cube.from()[i], cube.to()[i]);
-                float hi = Math.max(cube.from()[i], cube.to()[i]);
-                b[i]     = Math.min(b[i], lo);
-                b[i + 3] = Math.max(b[i + 3], hi);
-            }
-        }
-        for (BBModelData.Bone child : bone.children()) {
-            expandBounds(b, child);
-        }
-    }
-
-    // ── Transform helpers ──────────────────────────────────────────────────────
-
-    private static void applyDefTransformWithAutoScale(PoseStack ps,
-                                                       CosmeticDefinition def,
-                                                       float autoScale) {
-        float[] s = def.scale();
-        float[] o = def.offset();
-        float[] r = def.rotation();
-
-        ps.translate(o[0] * UNITS_TO_BLOCKS, o[1] * UNITS_TO_BLOCKS, o[2] * UNITS_TO_BLOCKS);
-        // Combine user-defined scale with auto-scale
-        ps.scale(s[0] * autoScale, s[1] * autoScale, s[2] * autoScale);
-        // Skip X rotation — the [180,0,0] default in CosmeticDefinition is for player-attached
-        // slots and flips pet entities upside down. Pet models are expected to stand upright;
-        // the renderer's yaw rotation already handles the correct facing direction.
-        if (r[1] != 0) ps.mulPose(new org.joml.Quaternionf().rotateY((float) Math.toRadians(r[1])));
-        if (r[2] != 0) ps.mulPose(new org.joml.Quaternionf().rotateZ((float) Math.toRadians(r[2])));
     }
 }

@@ -20,7 +20,7 @@ public final class FollowOwnerGoal extends Goal {
 
     private static final float MIN_DIST      = 3.0f;
     private static final float STOP_DIST     = 2.0f;
-    private static final float TELEPORT_DIST = 12.0f;
+    private static final float TELEPORT_DIST = 50.0f;
 
     private final PetCosmeticEntity pet;
     private final double speed;
@@ -88,8 +88,9 @@ public final class FollowOwnerGoal extends Goal {
             double targetZ = owner.getZ() + dz;
             BlockPos target = BlockPos.containing(targetX, targetY, targetZ);
 
-            // Ensure the block above is clear
-            if (level.isEmptyBlock(target) && level.isEmptyBlock(target.above())) {
+            // Ensure target block and block above are clear, and block below is solid (no mid-air teleport)
+            if (level.isEmptyBlock(target) && level.isEmptyBlock(target.above())
+                    && !level.isEmptyBlock(target.below())) {
                 pet.moveTo(targetX, targetY, targetZ, pet.getYRot(), pet.getXRot());
                 pet.getNavigation().stop();
                 return;

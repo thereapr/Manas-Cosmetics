@@ -1,6 +1,7 @@
 package io.github.manasmods.manas_cosmetics.data;
 
 import io.github.manasmods.manas_cosmetics.api.CosmeticSlot;
+import io.github.manasmods.manas_cosmetics.api.WeaponType;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.NbtAccounter;
@@ -19,6 +20,7 @@ import java.util.*;
 /**
  * Per-player cosmetic state:
  *  - Which cosmetic ID is equipped in each slot
+ *  - Which cosmetic ID is equipped per weapon type (independent per-weapon-type storage)
  *  - Which weapon slots have Force Equip enabled
  *  - Up to {@value CosmeticPreset#MAX_PRESETS} named presets
  *
@@ -32,6 +34,9 @@ public final class PlayerCosmeticData {
 
     private final Map<CosmeticSlot, String> equipped = new EnumMap<>(CosmeticSlot.class);
     private final Map<CosmeticSlot, Boolean> forceEquip = new EnumMap<>(CosmeticSlot.class);
+    /** Per-weapon-type cosmetics — each weapon type can independently have one cosmetic. */
+    private final Map<WeaponType, String> equippedWeapon = new EnumMap<>(WeaponType.class);
+    private final Map<WeaponType, Boolean> forceEquipWeapon = new EnumMap<>(WeaponType.class);
     private final List<CosmeticPreset> presets = new ArrayList<>();
 
     // ── Equip / Unequip ────────────────────────────────────────────────────────
@@ -57,6 +62,25 @@ public final class PlayerCosmeticData {
         return equipped.containsKey(slot);
     }
 
+    // ── Per-weapon-type equip ──────────────────────────────────────────────────
+
+    public void equipWeapon(WeaponType weaponType, String cosmeticId) {
+        equippedWeapon.put(weaponType, cosmeticId);
+    }
+
+    public void unequipWeapon(WeaponType weaponType) {
+        equippedWeapon.remove(weaponType);
+        forceEquipWeapon.remove(weaponType);
+    }
+
+    public Optional<String> getEquippedWeapon(WeaponType weaponType) {
+        return Optional.ofNullable(equippedWeapon.get(weaponType));
+    }
+
+    public Map<WeaponType, String> getAllEquippedWeapon() {
+        return Collections.unmodifiableMap(equippedWeapon);
+    }
+
     // ── Force Equip ────────────────────────────────────────────────────────────
 
     public void setForceEquip(CosmeticSlot slot, boolean value) {
@@ -71,16 +95,28 @@ public final class PlayerCosmeticData {
         return forceEquip.getOrDefault(slot, false);
     }
 
+    public void setForceEquipWeapon(WeaponType weaponType, boolean value) {
+        if (value) {
+            forceEquipWeapon.put(weaponType, true);
+        } else {
+            forceEquipWeapon.remove(weaponType);
+        }
+    }
+
+    public boolean isForceEquipWeapon(WeaponType weaponType) {
+        return forceEquipWeapon.getOrDefault(weaponType, false);
+    }
+
+    public Map<WeaponType, Boolean> getAllForceEquipWeapon() {
+        return Collections.unmodifiableMap(forceEquipWeapon);
+    }
+
     // ── Presets ────────────────────────────────────────────────────────────────
 
     public List<CosmeticPreset> getPresets() {
         return Collections.unmodifiableList(presets);
     }
 
-    /**
-     * Saves the current loadout as a new named preset.
-     * @return false if the preset cap ({@value CosmeticPreset#MAX_PRESETS}) has been reached.
-     */
     public boolean savePreset(String name) {
         if (presets.size() >= CosmeticPreset.MAX_PRESETS) return false;
         CosmeticPreset preset = new CosmeticPreset(name);
@@ -90,7 +126,6 @@ public final class PlayerCosmeticData {
         return true;
     }
 
-    /** Overwrites an existing preset at the given index. */
     public boolean overwritePreset(int index, String name) {
         if (index < 0 || index >= presets.size()) return false;
         CosmeticPreset preset = new CosmeticPreset(name);
@@ -100,7 +135,6 @@ public final class PlayerCosmeticData {
         return true;
     }
 
-    /** Loads a preset by index, replacing the current equipped state. */
     public boolean loadPreset(int index) {
         if (index < 0 || index >= presets.size()) return false;
         CosmeticPreset preset = presets.get(index);
@@ -129,6 +163,14 @@ public final class PlayerCosmeticData {
         CompoundTag forceTag = new CompoundTag();
         forceEquip.forEach((slot, v) -> forceTag.putBoolean(slot.getId(), v));
         data.put("force_equip", forceTag);
+
+        CompoundTag weaponTag = new CompoundTag();
+        equippedWeapon.forEach((wt, id) -> weaponTag.putString(wt.getId(), id));
+        data.put("equipped_weapon", weaponTag);
+
+        CompoundTag forceWeaponTag = new CompoundTag();
+        forceEquipWeapon.forEach((wt, v) -> forceWeaponTag.putBoolean(wt.getId(), v));
+        data.put("force_equip_weapon", forceWeaponTag);
 
         ListTag presetsTag = new ListTag();
         presets.stream().map(CosmeticPreset::save).forEach(presetsTag::add);
@@ -161,6 +203,28 @@ public final class PlayerCosmeticData {
             }
         }
 
+        equippedWeapon.clear();
+        if (data.contains("equipped_weapon", Tag.TAG_COMPOUND)) {
+            CompoundTag weaponTag = data.getCompound("equipped_weapon");
+            for (String key : weaponTag.getAllKeys()) {
+                WeaponType wt = WeaponType.fromId(key);
+                if (wt != WeaponType.ANY) {
+                    equippedWeapon.put(wt, weaponTag.getString(key));
+                }
+            }
+        }
+
+        forceEquipWeapon.clear();
+        if (data.contains("force_equip_weapon", Tag.TAG_COMPOUND)) {
+            CompoundTag forceWeaponTag = data.getCompound("force_equip_weapon");
+            for (String key : forceWeaponTag.getAllKeys()) {
+                WeaponType wt = WeaponType.fromId(key);
+                if (wt != WeaponType.ANY) {
+                    forceEquipWeapon.put(wt, forceWeaponTag.getBoolean(key));
+                }
+            }
+        }
+
         presets.clear();
         if (data.contains("presets", Tag.TAG_LIST)) {
             ListTag presetsTag = data.getList("presets", Tag.TAG_COMPOUND);
@@ -180,11 +244,6 @@ public final class PlayerCosmeticData {
 
     // ── File-based persistence ─────────────────────────────────────────────────
 
-    /**
-     * Loads the player's cosmetic data from
-     * {@code config/manas_cosmetics/playerdata/<uuid>.dat} into the server cache.
-     * Called on PLAYER_JOIN before syncing state to clients.
-     */
     public static void loadFromFile(MinecraftServer server, UUID uuid) {
         Path file = dataFile(server, uuid);
         PlayerCosmeticData data = SERVER_CACHE.computeIfAbsent(uuid, k -> new PlayerCosmeticData());
@@ -197,11 +256,6 @@ public final class PlayerCosmeticData {
         }
     }
 
-    /**
-     * Saves the player's current cosmetic data to
-     * {@code config/manas_cosmetics/playerdata/<uuid>.dat}.
-     * Called on PLAYER_QUIT before the cache entry is removed.
-     */
     public static void saveToFile(MinecraftServer server, UUID uuid) {
         PlayerCosmeticData data = SERVER_CACHE.get(uuid);
         if (data == null) return;
