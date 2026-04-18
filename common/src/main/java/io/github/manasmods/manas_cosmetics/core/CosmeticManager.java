@@ -626,9 +626,14 @@ public final class CosmeticManager {
         }
         sb.append("  \"force_equip_allowed\": true,\n");
         sb.append("  \"model\":               \"").append(modelPath).append("\",\n");
-        sb.append("  \"scale\":               ").append(scale).append(",\n");
-        sb.append("  \"offset\":              ").append(offset).append(",\n");
-        sb.append("  \"rotation\":            ").append(rotation).append("\n");
+        if (slot == CosmeticSlot.PET) {
+            // Pets render with their own transform logic; offset/rotation are ignored at runtime.
+            sb.append("  \"scale\":               ").append(scale).append("\n");
+        } else {
+            sb.append("  \"scale\":               ").append(scale).append(",\n");
+            sb.append("  \"offset\":              ").append(offset).append(",\n");
+            sb.append("  \"rotation\":            ").append(rotation).append("\n");
+        }
         sb.append("}");
         return sb.toString();
     }
